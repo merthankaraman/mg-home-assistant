@@ -87,10 +87,9 @@ public final class HaPublisher {
 
     private static void ensureGroup(Context ctx, HomeAssistantClient client, PublishResult out,
                                     String objectId, JSONArray members) {
-        String groupName = ctx.getString(R.string.ha_name_group);
         JSONObject attrs = new JSONObject();
         try {
-            attrs.put("friendly_name", groupName);
+            attrs.put("friendly_name", objectId);
             attrs.put("icon", "mdi:car-electric");
             attrs.put("entity_id", members);
             attrs.put("order", 0);
@@ -105,7 +104,7 @@ public final class HaPublisher {
         try {
             JSONObject g = new JSONObject();
             g.put("object_id", objectId);
-            g.put("name", groupName);
+            g.put("name", objectId);
             g.put("icon", "mdi:car-electric");
             g.put("entities", members);
             HomeAssistantClient.Result gr = client.callService("group", "set", g);
@@ -145,9 +144,6 @@ public final class HaPublisher {
                                                          String prefix) {
         String p = sanitize(prefix);
         JSONObject attr = new JSONObject();
-        try {
-            attr.put("friendly_name", ctx.getString(R.string.ha_name_group));
-        } catch (Exception ignored) {}
         HomeAssistantClient.Result last = client.postState("binary_sensor." + p + "_charging", "off",
                 binAttrs(ctx.getString(R.string.ha_name_charging), "battery_charging", "mdi:battery-charging"));
         String[] sensors = {

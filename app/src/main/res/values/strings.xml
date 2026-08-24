@@ -95,7 +95,7 @@
     <string name="msg_no_internet">İnternet yok — gönderilmedi</string>
     <string name="msg_sim_need_demo">Sim’de araç verisi yok — Demo modu aç</string>
     <string name="msg_sending">HA’ya gönderiliyor…</string>
-    <string name="msg_sent_ok">Gönderildi: group.mg4 (ok %1$d)</string>
+    <string name="msg_sent_ok">Gönderildi: group.%1$s (ok %2$d)</string>
     <string name="msg_sent_partial">Kısmi/hata: ok=%1$d fail=%2$d%3$s</string>
     <string name="msg_error">Hata: %1$s</string>
     <string name="msg_client_missing">istemci veya veri yok</string>
@@ -174,7 +174,6 @@
     <string name="ha_name_charging">Şarjda</string>
     <string name="ha_name_last_update">Son güncelleme</string>
     <string name="ha_name_location">Konum</string>
-    <string name="ha_name_group">MG4</string>
 
     <!-- Config web page -->
     <string name="web_title">MG HA ayar</string>

@@ -6,20 +6,20 @@ MG4 infotainment’dan (veya Demo’da Sim varyantından) veriyi Home Assistant�
 
 Gönderilenler: SOC, menzil, km, dış sıcaklık, lastik, şarj (AC/batarya V·A + güç), son güncelleme, konum.
 
-HA’ya eklenti kurulmaz. Varlıklar `group.mg4` altında toplanır (Cihazlar listesinde cihaz olarak görünmez; REST bunu yapamaz).
-
+HA’ya eklenti kurulmaz. Varlıklar `group.<öneki>` altında toplanır (varsayılan `group.mg4`; Cihazlar listesinde cihaz olarak görünmez; REST bunu yapamaz).
+    10|
 ## 1) Home Assistant
 
-Her gönderimde uygulama token ile önce varlıkları yazar:
+Her gönderimde uygulama token ile önce varlıkları yazar (öneki ayardan, örn. `mg4`):
 
-- `POST /api/states/sensor.mg4_*`
-- `POST /api/states/binary_sensor.mg4_charging`
-- `POST /api/states/device_tracker.mg4` (konum varsa)
+- `POST /api/states/sensor.<öneki>_*`
+- `POST /api/states/binary_sensor.<öneki>_charging`
+- `POST /api/states/device_tracker.<öneki>` (konum varsa)
 
-Hemen ardından `POST /api/states/group.mg4` ile **`group.mg4`** oluşturur / günceller
-(üyeleri `entity_id` attribute’unda). Böylece HA’da `group:` YAML / `group.set` gerekmez.
+Hemen ardından `POST /api/states/group.<öneki>` ile grubu oluşturur / günceller
+(üyeleri `entity_id` attribute’unda; görünür ad da önek). Böylece HA’da `group:` YAML / `group.set` gerekmez.
 
-Dashboard’da bir Entities kartına `group.mg4` ekle. Ayarlar → Varlıklar’da da görünür.
+Dashboard’da bir Entities kartına `group.<öneki>` ekle. Ayarlar → Varlıklar’da da görünür.
 
 Eski custom component (`mg4_bridge`) kurduysan kaldırabilirsin; artık gerekmez.
 
@@ -43,7 +43,7 @@ Build Variant: **simDebug**. Demo / HA test için. Token aktarımı için şart 
 
 Build Variant: **carDebug**, `platform.p12` ile imzala (DriveHub Dort ile aynı).
 
-## Varlıklar (`group.mg4`)
+## Varlıklar (`group.<öneki>`, varsayılan `mg4`)
 
 | Varlık | Anlam |
 |---|---|
