@@ -4,6 +4,8 @@ import android.content.Context;
 
 import com.drivehub.mgha.R;
 
+import java.util.Locale;
+
 /**
  * Ekranda ve Home Assistant'ta kullanılan sade araç anlığı.
  */
@@ -39,26 +41,25 @@ public class VehicleSnapshot {
         if (demo) {
             sb.append(ctx.getString(R.string.preview_demo_header));
         }
-        sb.append(ctx.getString(R.string.preview_soc, fmt(ctx, socPercent, R.string.unit_percent)));
-        sb.append(ctx.getString(R.string.preview_range, fmtInt(ctx, rangeKm, R.string.unit_km)));
-        sb.append(ctx.getString(R.string.preview_odometer, fmtInt(ctx, odometerKm, R.string.unit_km)));
-        sb.append(ctx.getString(R.string.preview_exterior, fmtInt(ctx, exteriorTempC, R.string.unit_celsius)));
-        sb.append(ctx.getString(R.string.preview_charge,
-                ctx.getString(charging ? R.string.preview_yes : R.string.preview_no),
-                chargeLabel(ctx, chargeStatus)));
-        sb.append(ctx.getString(R.string.preview_power, fmt(ctx, chargePowerKw, R.string.unit_kw)));
-        sb.append(ctx.getString(R.string.preview_ac,
-                fmt(ctx, acVoltageV, R.string.unit_v),
-                fmt(ctx, acCurrentA, R.string.unit_a)));
-        sb.append(ctx.getString(R.string.preview_batt,
-                fmt(ctx, batteryVoltageV, R.string.unit_v),
-                fmt(ctx, batteryCurrentA, R.string.unit_a)));
         sb.append(ctx.getString(R.string.preview_last_update, fmtTime(ctx, capturedAtMs)));
+        sb.append(ctx.getString(R.string.preview_soc, fmt(ctx, socPercent, R.string.fmt_percent)));
+        sb.append(ctx.getString(R.string.preview_range, fmtInt(ctx, rangeKm, R.string.fmt_km)));
+        sb.append(ctx.getString(R.string.preview_odometer, fmtInt(ctx, odometerKm, R.string.fmt_km)));
+        sb.append(ctx.getString(R.string.preview_exterior, fmtInt(ctx, exteriorTempC, R.string.fmt_celsius)));
         sb.append('\n');
-        sb.append(ctx.getString(R.string.preview_tire_fl, fmtKpa(ctx, tireKpaFl)));
-        sb.append(ctx.getString(R.string.preview_tire_fr, fmtKpa(ctx, tireKpaFr)));
-        sb.append(ctx.getString(R.string.preview_tire_rl, fmtKpa(ctx, tireKpaRl)));
-        sb.append(ctx.getString(R.string.preview_tire_rr, fmtKpa(ctx, tireKpaRr)));
+        sb.append(ctx.getString(R.string.preview_charge, chargeLabel(ctx, chargeStatus)));
+        sb.append(ctx.getString(R.string.preview_power, fmt(ctx, chargePowerKw, R.string.fmt_kw)));
+        sb.append(ctx.getString(R.string.preview_ac,
+                fmt(ctx, acVoltageV, R.string.fmt_v),
+                fmt(ctx, acCurrentA, R.string.fmt_a)));
+        sb.append(ctx.getString(R.string.preview_batt,
+                fmt(ctx, batteryVoltageV, R.string.fmt_v),
+                fmt(ctx, batteryCurrentA, R.string.fmt_a)));
+        sb.append('\n');
+        sb.append(ctx.getString(R.string.preview_tire_fl, fmtInt(ctx, tireKpaFl, R.string.fmt_kpa)));
+        sb.append(ctx.getString(R.string.preview_tire_fr, fmtInt(ctx, tireKpaFr, R.string.fmt_kpa)));
+        sb.append(ctx.getString(R.string.preview_tire_rl, fmtInt(ctx, tireKpaRl, R.string.fmt_kpa)));
+        sb.append(ctx.getString(R.string.preview_tire_rr, fmtInt(ctx, tireKpaRr, R.string.fmt_kpa)));
         sb.append('\n');
         sb.append(ctx.getString(R.string.preview_location, fmtGps(ctx)));
         return sb.toString();
@@ -79,36 +80,33 @@ public class VehicleSnapshot {
         }
     }
 
-    private static String fmt(Context ctx, float v, int unitRes) {
+    /** Sayıyı string yapıp birim kalıbına verir; sıra strings.xml’de. */
+    private static String fmt(Context ctx, float v, int formatRes) {
         if (Float.isNaN(v)) return ctx.getString(R.string.preview_unknown);
-        String unit = ctx.getString(unitRes);
-        if (v == (long) v) return (long) v + unit;
-        return String.format(java.util.Locale.US, "%.1f%s", v, unit);
+        String num = (v == (long) v)
+                ? Long.toString((long) v)
+                : String.format(Locale.US, "%.1f", v);
+        return ctx.getString(formatRes, num);
     }
 
-    private static String fmtInt(Context ctx, int v, int unitRes) {
-        return v < 0
-                ? ctx.getString(R.string.preview_unknown)
-                : (v + ctx.getString(unitRes));
-    }
-
-    private static String fmtKpa(Context ctx, int kpa) {
-        if (kpa < 0) return ctx.getString(R.string.preview_unknown);
-        return ctx.getString(R.string.unit_kpa, kpa);
+    private static String fmtInt(Context ctx, int v, int formatRes) {
+        if (v < 0) return ctx.getString(R.string.preview_unknown);
+        return ctx.getString(formatRes, String.valueOf(v));
     }
 
     private String fmtGps(Context ctx) {
         if (Double.isNaN(latitude) || Double.isNaN(longitude)) {
             return ctx.getString(R.string.preview_unknown);
         }
-        String acc = Float.isNaN(gpsAccuracyM) ? "" :
-                String.format(java.util.Locale.US, "  (±%.0f m)", gpsAccuracyM);
-        return String.format(java.util.Locale.US, "%.5f, %.5f%s", latitude, longitude, acc);
+        if (Float.isNaN(gpsAccuracyM)) {
+            return ctx.getString(R.string.fmt_gps, latitude, longitude);
+        }
+        return ctx.getString(R.string.fmt_gps_acc, latitude, longitude, gpsAccuracyM);
     }
 
     private static String fmtTime(Context ctx, long ms) {
         if (ms <= 0) return ctx.getString(R.string.preview_unknown);
-        return new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
+        return new java.text.SimpleDateFormat("HH:mm:ss", Locale.getDefault())
                 .format(new java.util.Date(ms));
     }
 }
