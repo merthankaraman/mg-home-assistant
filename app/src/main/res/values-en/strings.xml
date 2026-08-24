@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MG Home Assistant</string>
+    <string name="channel_bridge">Home Assistant bridge</string>
+    <string name="notify_running">Bridge running</string>
+    <string name="notify_waiting_wifi">Waiting for Wi‑Fi</string>
+    <string name="notify_sent">Home Assistant updated</string>
+    <string name="notify_error">Send failed</string>
+
+    <!-- Main screen -->
+    <string name="title_main">MG4 Home Assistant</string>
+    <string name="version_placeholder">v—</string>
+    <string name="version_format">v%1$s  (%2$s%3$s)</string>
+    <string name="version_debug_suffix"> debug</string>
+    <string name="subtitle_main">SOC, range, odometer, tires, exterior temp, charging, and location. Try Demo mode on Sim.</string>
+    <string name="label_ha_url">Home Assistant URL</string>
+    <string name="hint_ha_url">https://example.duckdns.org:8123</string>
+    <string name="label_ha_token">Long-lived access token</string>
+    <string name="hint_ha_token">eyJhbGciOi…</string>
+    <string name="btn_paste">Paste</string>
+    <string name="hint_token_transfer">Instead of typing here, tap the button to open a web page you can fill from your phone</string>
+    <string name="btn_from_web">Fill via website</string>
+    <string name="label_prefix">Entity prefix</string>
+    <string name="hint_prefix">mg4</string>
+    <string name="default_prefix">mg4</string>
+    <string name="label_interval">Interval (minutes)</string>
+    <string name="hint_interval">1</string>
+    <string name="default_interval">1</string>
+    <string name="check_wifi_only">Send only when on Wi‑Fi</string>
+    <string name="check_insecure_ssl">Accept self-signed SSL</string>
+    <string name="check_autostart">Start service on boot</string>
+    <string name="btn_save">Save</string>
+    <string name="btn_ha_test">HA test</string>
+    <string name="btn_service_start">Start service</string>
+    <string name="btn_service_stop">Stop service</string>
+    <string name="btn_send_now">Send now</string>
+    <string name="btn_demo">Demo mode</string>
+    <string name="btn_demo_on">Demo on — tap to turn off</string>
+    <string name="label_status">Status</string>
+    <string name="label_preview">Shown data</string>
+    <string name="preview_waiting">Waiting for data…</string>
+    <string name="em_dash">—</string>
+
+    <!-- Toasts / dialogs -->
+    <string name="toast_saved">Saved</string>
+    <string name="toast_need_url_token">Enter URL and token first</string>
+    <string name="toast_need_url_token_save">Save URL and token first</string>
+    <string name="toast_ha_ok">Home Assistant connected</string>
+    <string name="toast_ha_fail">HA test failed</string>
+    <string name="ha_test_ok">HA test: OK %1$s</string>
+    <string name="ha_test_fail">HA test error: %1$s</string>
+    <string name="toast_sending_now">Sending now</string>
+    <string name="toast_demo_need_config">Demo data is on screen. Enter URL and token to send it to HA.</string>
+    <string name="toast_demo_on">Demo on — fake data is being sent to HA</string>
+    <string name="toast_demo_off">Demo off</string>
+    <string name="toast_clipboard_empty">Clipboard empty</string>
+    <string name="toast_settings_from_clipboard">Settings loaded from clipboard</string>
+    <string name="toast_url_pasted">URL pasted</string>
+    <string name="toast_token_pasted">Token pasted — tap Save</string>
+    <string name="toast_config_incomplete">Incoming settings incomplete</string>
+    <string name="toast_from_web_ok">Received from website</string>
+    <string name="dialog_from_web_title">Fill via website</string>
+    <string name="dialog_from_web_message">Phone and car must be on the same Wi‑Fi. Open this address in the phone browser, paste the token, and submit.</string>
+    <string name="dialog_preparing_link">Preparing link…</string>
+    <string name="btn_cancel">Cancel</string>
+
+    <!-- Status block -->
+    <string name="status_service">Service: %1$s</string>
+    <string name="status_on">ON</string>
+    <string name="status_off">OFF</string>
+    <string name="status_mode">Mode: %1$s</string>
+    <string name="status_mode_demo">DEMO</string>
+    <string name="status_mode_car">car</string>
+    <string name="status_cpm">Car CPM: %1$s</string>
+    <string name="status_ready">connected</string>
+    <string name="status_missing">missing</string>
+    <string name="status_net">Network: %1$s  (any %2$s, Wi‑Fi %3$s)</string>
+    <string name="status_yes">yes</string>
+    <string name="status_no">no</string>
+    <string name="status_sim_hint">Sim: Wi‑Fi not required — cellular/ethernet OK</string>
+    <string name="status_config">Config: %1$s</string>
+    <string name="status_config_ok">ready</string>
+    <string name="status_config_missing">URL/token missing</string>
+    <string name="status_last_send">Last send: %1$s</string>
+    <string name="status_counts">  (ok %1$d / fail %2$d)</string>
+    <string name="status_line">Status: %1$s</string>
+
+    <!-- Service messages -->
+    <string name="msg_service_started">Service started</string>
+    <string name="msg_service_stopped">Service stopped</string>
+    <string name="msg_tick">Tick…</string>
+    <string name="msg_not_configured">URL and token not saved</string>
+    <string name="msg_no_internet_sim">No internet — not sent (%1$s)</string>
+    <string name="msg_no_wifi">No Wi‑Fi — not sent (active: %1$s)</string>
+    <string name="msg_no_internet">No internet — not sent</string>
+    <string name="msg_sim_need_demo">No car data on Sim — turn on Demo mode</string>
+    <string name="msg_sending">Sending to HA…</string>
+    <string name="msg_sent_ok">Sent: group.%1$s (ok %2$d)</string>
+    <string name="msg_sent_partial">Partial/error: ok=%1$d fail=%2$d%3$s</string>
+    <string name="msg_error">Error: %1$s</string>
+    <string name="msg_client_missing">client or data missing</string>
+    <string name="msg_group_fail">group: %1$s</string>
+    <string name="msg_unknown_error">unknown error</string>
+    <string name="msg_no_wifi_ip">No Wi‑Fi IP — car and phone must be on the same network</string>
+    <string name="msg_web_timeout">Timed out. Open the page on your phone and tap Submit.</string>
+    <string name="msg_waiting_phone">Open on phone: %1$s</string>
+    <string name="msg_web_need_fields">URL and token required.</string>
+    <string name="msg_web_saved">Saved. Check the car — settings received.</string>
+    <string name="msg_generic_error">error</string>
+    <string name="err_ha_url_empty">Home Assistant URL is empty</string>
+    <string name="err_ha_token_empty">Token is empty</string>
+
+    <!-- Network describe -->
+    <string name="net_none">none</string>
+    <string name="net_no_internet">no internet</string>
+    <string name="net_wifi">Wi‑Fi</string>
+    <string name="net_cellular">cellular</string>
+    <string name="net_ethernet">ethernet</string>
+    <string name="net_vpn">VPN</string>
+    <string name="net_other">other</string>
+
+    <!-- Preview / vehicle -->
+    <string name="preview_demo_header">DEMO MODE — simulated data\n\n</string>
+    <string name="preview_soc">Battery charge: %1$s\n</string>
+    <string name="preview_range">Range: %1$s\n</string>
+    <string name="preview_odometer">Odometer: %1$s\n</string>
+    <string name="preview_exterior">Exterior temp: %1$s\n</string>
+    <string name="preview_charge">Charging: %1$s\n</string>
+    <string name="preview_yes">yes</string>
+    <string name="preview_no">no</string>
+    <string name="preview_power">Charge power: %1$s\n</string>
+    <string name="preview_ac">AC: %1$s / %2$s\n</string>
+    <string name="preview_batt">Battery: %1$s / %2$s\n</string>
+    <string name="preview_last_update">Last update: %1$s\n</string>
+    <string name="preview_tire_fl">Tire front left: %1$s\n</string>
+    <string name="preview_tire_fr">Tire front right: %1$s\n</string>
+    <string name="preview_tire_rl">Tire rear left: %1$s\n</string>
+    <string name="preview_tire_rr">Tire rear right: %1$s\n</string>
+    <string name="preview_location">Location: %1$s</string>
+    <string name="preview_unknown">?</string>
+    <!-- Number + unit: adjust order per locale (%1$s = number text) -->
+    <string name="fmt_percent">%1$s%%</string>
+    <string name="fmt_km">%1$s km</string>
+    <string name="fmt_celsius">%1$s °C</string>
+    <string name="fmt_kw">%1$s kW</string>
+    <string name="fmt_v">%1$s V</string>
+    <string name="fmt_a">%1$s A</string>
+    <string name="fmt_kpa">%1$s kPa</string>
+    <string name="fmt_gps">%1$.5f, %2$.5f</string>
+    <string name="fmt_gps_acc">%1$.5f, %2$.5f  (±%3$.0f m)</string>
+    <string name="charge_unplugged">unplugged</string>
+    <string name="charge_ac">AC charging</string>
+    <string name="charge_connecting">connecting</string>
+    <string name="charge_plugged">plugged in, not charging</string>
+    <string name="charge_stopped">stopped</string>
+    <string name="charge_dc">DC charging</string>
+    <string name="charge_code">code %1$d</string>
+
+    <!-- HA entity friendly names (sent to Home Assistant) -->
+    <string name="ha_name_battery">State of charge</string>
+    <string name="ha_name_range">Range</string>
+    <string name="ha_name_mileage">Odometer</string>
+    <string name="ha_name_exterior">Exterior temperature</string>
+    <string name="ha_name_tire_fl">Tire front left</string>
+    <string name="ha_name_tire_fr">Tire front right</string>
+    <string name="ha_name_tire_rl">Tire rear left</string>
+    <string name="ha_name_tire_rr">Tire rear right</string>
+    <string name="ha_name_charging_status">Charging status</string>
+    <string name="ha_name_ac_voltage">AC voltage</string>
+    <string name="ha_name_ac_current">AC current</string>
+    <string name="ha_name_battery_voltage">Battery voltage</string>
+    <string name="ha_name_battery_current">Battery current</string>
+    <string name="ha_name_charging_power">Charge power</string>
+    <string name="ha_name_charging">Charging</string>
+    <string name="ha_name_last_update">Last update</string>
+    <string name="ha_name_location">Location</string>
+
+    <!-- Config web page -->
+    <string name="web_title">MG HA setup</string>
+    <string name="web_heading">MG → Home Assistant</string>
+    <string name="web_intro">Paste the HA URL and long-lived token here. When you submit, the car saves them.</string>
+    <string name="web_label_url">Home Assistant URL</string>
+    <string name="web_label_token">Long-lived access token</string>
+    <string name="web_label_prefix">Prefix (optional)</string>
+    <string name="web_btn_save">Save to car</string>
+    <string name="web_result_ok">OK</string>
+    <string name="web_result_fail">Error</string>
+</resources>
