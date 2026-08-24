@@ -82,7 +82,7 @@
     <string name="status_config_ok">ready</string>
     <string name="status_config_missing">URL/token missing</string>
     <string name="status_last_send">Last send: %1$s</string>
-    <string name="status_counts">  (ok %1$d / fail %2$d)</string>
+    <string name="status_counts">  (OK %1$d / fail %2$d)</string>
     <string name="status_line">Status: %1$s</string>
 
     <!-- Service messages -->
@@ -95,8 +95,8 @@
     <string name="msg_no_internet">No internet — not sent</string>
     <string name="msg_sim_need_demo">No car data on Sim — turn on Demo mode</string>
     <string name="msg_sending">Sending to HA…</string>
-    <string name="msg_sent_ok">Sent: group.%1$s (ok %2$d)</string>
-    <string name="msg_sent_partial">Partial/error: ok=%1$d fail=%2$d%3$s</string>
+    <string name="msg_sent_ok">Sent: group.%1$s (OK %2$d)</string>
+    <string name="msg_sent_partial">Partial/error: OK=%1$d fail=%2$d%3$s</string>
     <string name="msg_error">Error: %1$s</string>
     <string name="msg_client_missing">client or data missing</string>
     <string name="msg_group_fail">group: %1$s</string>

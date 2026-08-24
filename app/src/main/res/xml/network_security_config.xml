@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<network-security-config>
+<!--
+  Cleartext: LAN config page (http://192.168.x.x).
+  User certs: optional self-signed HA via system-installed user CA.
+  App also has an in-code trust-all path when "allow insecure SSL" is enabled.
+-->
+<network-security-config xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="InsecureBaseConfiguration,AcceptsUserCertificates">
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />

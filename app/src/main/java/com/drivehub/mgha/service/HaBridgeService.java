@@ -10,13 +10,13 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
-import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
@@ -56,7 +56,8 @@ public class HaBridgeService extends Service {
         if (pm != null) {
             wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "mgha:bridge");
             wakeLock.setReferenceCounted(false);
-            wakeLock.acquire();
+            // Renewed on each tick; timeout prevents orphan locks if service dies.
+            wakeLock.acquire(HaSettings.intervalMs(this) + 120_000L);
         }
 
         workerThread = new HandlerThread("mgha-worker");
@@ -103,6 +104,7 @@ public class HaBridgeService extends Service {
 
     private void tick() {
         Log.i(TAG, "tick başlıyor");
+        renewWakeLock();
         try {
             BridgeStatus.lastMessage = getString(R.string.msg_tick);
             broadcastStatus();
@@ -211,7 +213,7 @@ public class HaBridgeService extends Service {
         NetworkRequest req = b.build();
         networkCallback = new ConnectivityManager.NetworkCallback() {
             @Override
-            public void onAvailable(Network network) {
+            public void onAvailable(@NonNull Network network) {
                 Log.i(TAG, "network onAvailable → tick");
                 if (worker != null) {
                     worker.removeCallbacks(tickRunnable);
@@ -258,11 +260,18 @@ public class HaBridgeService extends Service {
     }
 
     private void createChannel() {
-        if (Build.VERSION.SDK_INT < 26) return;
         NotificationChannel ch = new NotificationChannel(
                 CHANNEL_ID, getString(R.string.channel_bridge), NotificationManager.IMPORTANCE_LOW);
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         if (nm != null) nm.createNotificationChannel(ch);
+    }
+
+    private void renewWakeLock() {
+        if (wakeLock == null) return;
+        try {
+            if (wakeLock.isHeld()) wakeLock.release();
+        } catch (Exception ignored) {}
+        wakeLock.acquire(HaSettings.intervalMs(this) + 120_000L);
     }
 
     private String preview(VehicleSnapshot s) {

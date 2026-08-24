@@ -7,7 +7,7 @@
         android:persistent="true"
         tools:replace="android:persistent">
         <activity
-            android:name=".ui.MainActivity"
+            android:name="com.drivehub.mgha.ui.MainActivity"
             android:screenOrientation="landscape"
             tools:replace="android:screenOrientation" />
     </application>

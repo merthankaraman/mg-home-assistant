@@ -54,10 +54,6 @@ public final class ConfigWebServer {
         server = null;
     }
 
-    public boolean isActive() {
-        return running.get();
-    }
-
     public void start(Context context, Listener listener) {
         stop();
         appCtx = context.getApplicationContext();
@@ -103,44 +99,42 @@ public final class ConfigWebServer {
     }
 
     private void handleClient(Socket sock, Listener listener) {
-        try {
-            sock.setSoTimeout(15000);
-            InputStream in = new BufferedInputStream(sock.getInputStream());
+        try (Socket client = sock) {
+            client.setSoTimeout(15000);
+            InputStream in = new BufferedInputStream(client.getInputStream());
             String headers = readHeaders(in);
             if (headers == null) {
-                writeHttp(sock, 400, "text/plain", "bad request");
+                writeHttp(client, 400, "text/plain", "bad request");
                 return;
             }
             String first = headers.split("\n")[0];
             if (first.startsWith("GET /")) {
-                writeHttp(sock, 200, "text/html; charset=utf-8", htmlPage());
+                writeHttp(client, 200, "text/html; charset=utf-8", htmlPage());
                 return;
             }
             if (first.startsWith("POST ")) {
                 int len = contentLength(headers);
                 if (len < 0 || len > 64_000) {
-                    writeHttp(sock, 400, "text/plain", "bad length");
+                    writeHttp(client, 400, "text/plain", "bad length");
                     return;
                 }
                 byte[] body = readFully(in, len);
                 String raw = new String(body, StandardCharsets.UTF_8);
                 JSONObject cfg = parseBody(raw);
                 if (cfg == null) {
-                    writeHttp(sock, 400, "text/html; charset=utf-8",
+                    writeHttp(client, 400, "text/html; charset=utf-8",
                             resultPage(false, str(R.string.msg_web_need_fields)));
                     return;
                 }
-                writeHttp(sock, 200, "text/html; charset=utf-8",
+                writeHttp(client, 200, "text/html; charset=utf-8",
                         resultPage(true, str(R.string.msg_web_saved)));
                 running.set(false);
                 main.post(() -> listener.onReceived(cfg));
                 return;
             }
-            writeHttp(sock, 404, "text/plain", "not found");
+            writeHttp(client, 404, "text/plain", "not found");
         } catch (Exception e) {
             Log.w(TAG, "client: " + e.getMessage());
-        } finally {
-            try { sock.close(); } catch (Exception ignored) {}
         }
     }
 
@@ -190,7 +184,7 @@ public final class ConfigWebServer {
 
     private static String decode(String v) {
         try {
-            return URLDecoder.decode(v.replace("+", "%20"), "UTF-8");
+            return URLDecoder.decode(v.replace("+", "%20"), StandardCharsets.UTF_8.name());
         } catch (Exception e) {
             return v;
         }
@@ -264,7 +258,7 @@ public final class ConfigWebServer {
             }
             if (s > 8000) return null;
         }
-        return bos.toString("UTF-8").replace("\r", "");
+        return new String(bos.toByteArray(), StandardCharsets.UTF_8).replace("\r", "");
     }
 
     private static int contentLength(String headers) {

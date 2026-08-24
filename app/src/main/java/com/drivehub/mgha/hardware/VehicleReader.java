@@ -26,7 +26,6 @@ public final class VehicleReader {
     private static final String TAG = "MGHA_HW";
 
     private static final int AREA_GLOBAL = 0x01000000;
-    private static final int AREA_HVAC = 0x75;
 
     private static final int PROP_SPEED = 0x11600207;
     private static final int PROP_SOC = 0x2160F404;
@@ -52,7 +51,6 @@ public final class VehicleReader {
     private static Context sAppContext;
     private static Object sCar;
     private static Object sCarPropertyManager;
-    private static Object sCarHvacManager;
     private static boolean sCarBindAttempted;
     private static boolean sMapBindAttempted;
     private static IBinder sSaicMapBinder;
@@ -148,14 +146,12 @@ public final class VehicleReader {
     private static boolean isCharging(int status, float acAmp, float dcAmp, float battVolt, float speedKmh) {
         if (status == 1 || status == 10) return true;
         if (!Float.isNaN(acAmp) && acAmp > 0.5f) return true;
-        if (!Float.isNaN(dcAmp) && !Float.isNaN(battVolt)
+        return !Float.isNaN(dcAmp) && !Float.isNaN(battVolt)
                 && battVolt > 200f && dcAmp <= -1f
-                && (Float.isNaN(speedKmh) || speedKmh < 1f)) {
-            return true;
-        }
-        return false;
+                && (Float.isNaN(speedKmh) || speedKmh < 1f);
     }
 
+    @SuppressWarnings("JavaReflectionMemberAccess")
     private static void bindCarService(Context context) {
         if (sCarBindAttempted) return;
         sCarBindAttempted = true;
@@ -176,7 +172,7 @@ public final class VehicleReader {
             if (car == null) {
                 try {
                     Method createH = carClass.getMethod("createCar", Context.class, Handler.class);
-                    car = createH.invoke(null, context, (Handler) null);
+                    car = createH.invoke(null, context, null);
                 } catch (Exception e) {
                     Log.w(TAG, "createCar(Context,Handler) hata: " + e.getMessage());
                 }
@@ -223,16 +219,6 @@ public final class VehicleReader {
             if (cpm != null) {
                 sCarPropertyManager = cpm;
                 Log.i(TAG, "CarPropertyManager hazır");
-            }
-            try {
-                String hvacService = (String) carClass.getField("HVAC_SERVICE").get(null);
-                Object hvac = getCarManager.invoke(sCar, hvacService);
-                if (hvac != null) {
-                    sCarHvacManager = hvac;
-                    Log.i(TAG, "CarHvacManager hazır");
-                }
-            } catch (Exception e) {
-                Log.w(TAG, "HVAC manager yok: " + e.getMessage());
             }
             try {
                 Object bms = getCarManager.invoke(sCar, "bms");
@@ -343,15 +329,11 @@ public final class VehicleReader {
     }
 
     private static int getInt(int propId) {
-        return getIntArea(propId, AREA_GLOBAL);
-    }
-
-    private static int getIntArea(int propId, int area) {
         if (sCarPropertyManager == null) return -1;
         try {
             Method getProperty = sCarPropertyManager.getClass()
                     .getMethod("getProperty", Class.class, int.class, int.class);
-            Object cpv = getProperty.invoke(sCarPropertyManager, Integer.class, propId, area);
+            Object cpv = getProperty.invoke(sCarPropertyManager, Integer.class, propId, AREA_GLOBAL);
             if (cpv == null) return -1;
             Object v = cpv.getClass().getMethod("getValue").invoke(cpv);
             return v instanceof Number ? ((Number) v).intValue() : -1;
@@ -361,34 +343,17 @@ public final class VehicleReader {
     }
 
     private static float getFloat(int propId) {
-        return getFloatArea(propId, AREA_GLOBAL);
-    }
-
-    private static float getFloatArea(int propId, int area) {
         if (sCarPropertyManager == null) return Float.NaN;
         try {
             Method getProperty = sCarPropertyManager.getClass()
                     .getMethod("getProperty", Class.class, int.class, int.class);
-            Object cpv = getProperty.invoke(sCarPropertyManager, Float.class, propId, area);
+            Object cpv = getProperty.invoke(sCarPropertyManager, Float.class, propId, AREA_GLOBAL);
             if (cpv == null) return Float.NaN;
             Object v = cpv.getClass().getMethod("getValue").invoke(cpv);
             return v instanceof Number ? ((Number) v).floatValue() : Float.NaN;
         } catch (Throwable t) {
             return Float.NaN;
         }
-    }
-
-    private static int getIntHvac(int propId) {
-        if (sCarHvacManager != null) {
-            try {
-                Method getInt = sCarHvacManager.getClass()
-                        .getMethod("getIntProperty", int.class, int.class);
-                Object result = getInt.invoke(sCarHvacManager, propId, AREA_HVAC);
-                if (result instanceof Number) return ((Number) result).intValue();
-            } catch (Throwable ignored) {}
-        }
-        int v = getIntArea(propId, AREA_HVAC);
-        return v;
     }
 
     private static float bmsFloat(int propId) {

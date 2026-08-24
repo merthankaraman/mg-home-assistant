@@ -77,7 +77,7 @@ public final class HaPublisher {
                 attrs(ctx.getString(R.string.ha_name_charging_power), "kW", "power", "measurement", "mdi:flash"));
         postStr(client, out, members, "binary_sensor." + p + "_charging",
                 snap.charging ? "on" : "off",
-                binAttrs(ctx.getString(R.string.ha_name_charging), "battery_charging", "mdi:battery-charging"));
+                binAttrs(ctx.getString(R.string.ha_name_charging)));
 
         if (members.length() > 0) {
             ensureGroup(ctx, client, out, p, members);
@@ -140,12 +140,11 @@ public final class HaPublisher {
         return sb.length() == 0 ? ctx.getString(R.string.msg_unknown_error) : sb.toString();
     }
 
-    public static HomeAssistantClient.Result markOffline(Context ctx, HomeAssistantClient client,
-                                                         String prefix) {
+    public static void markOffline(Context ctx, HomeAssistantClient client, String prefix) {
         String p = sanitize(prefix);
         JSONObject attr = new JSONObject();
-        HomeAssistantClient.Result last = client.postState("binary_sensor." + p + "_charging", "off",
-                binAttrs(ctx.getString(R.string.ha_name_charging), "battery_charging", "mdi:battery-charging"));
+        client.postState("binary_sensor." + p + "_charging", "off",
+                binAttrs(ctx.getString(R.string.ha_name_charging)));
         String[] sensors = {
                 "sensor." + p + "_battery",
                 "sensor." + p + "_range",
@@ -164,9 +163,8 @@ public final class HaPublisher {
                 "sensor." + p + "_last_update"
         };
         for (String id : sensors) {
-            last = client.postState(id, "unavailable", attr);
+            client.postState(id, "unavailable", attr);
         }
-        return last;
     }
 
     private static String sanitize(String prefix) {
@@ -231,12 +229,12 @@ public final class HaPublisher {
         return a;
     }
 
-    private static JSONObject binAttrs(String name, String deviceClass, String icon) {
+    private static JSONObject binAttrs(String name) {
         JSONObject a = new JSONObject();
         try {
             a.put("friendly_name", name);
-            a.put("device_class", deviceClass);
-            a.put("icon", icon);
+            a.put("device_class", "battery_charging");
+            a.put("icon", "mdi:battery-charging");
         } catch (Exception ignored) {}
         return a;
     }

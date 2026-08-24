@@ -119,11 +119,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         IntentFilter f = new IntentFilter(HaBridgeService.ACTION_STATUS);
-        if (Build.VERSION.SDK_INT >= 33) {
-            registerReceiver(statusReceiver, f, Context.RECEIVER_NOT_EXPORTED);
-        } else {
-            registerReceiver(statusReceiver, f);
-        }
+        ContextCompat.registerReceiver(this, statusReceiver, f, ContextCompat.RECEIVER_NOT_EXPORTED);
         refreshStatus();
         refreshLocalPreview();
         ui.removeCallbacks(statusPoll);
@@ -349,7 +345,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         JSONObject cfg = HaSettings.parseConfig(t);
-        if (cfg != null && HaSettings.applyJson(this, cfg)) {
+        if (HaSettings.applyJson(this, cfg)) {
             loadFromSettings();
             refreshStatus();
             Toast.makeText(this, R.string.toast_settings_from_clipboard, Toast.LENGTH_SHORT).show();

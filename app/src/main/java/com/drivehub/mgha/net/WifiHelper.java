@@ -6,6 +6,7 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 
 import com.drivehub.mgha.BuildConfig;
+import com.drivehub.mgha.R;
 
 /**
  * Ağ kontrolü. {@code sim} varyantında WiFi şart değil (hücresel / ethernet de olur).
@@ -16,10 +17,6 @@ public final class WifiHelper {
 
     public static boolean hasWifiInternet(Context ctx) {
         return hasTransportInternet(ctx, NetworkCapabilities.TRANSPORT_WIFI);
-    }
-
-    public static boolean hasEthernetInternet(Context ctx) {
-        return hasTransportInternet(ctx, NetworkCapabilities.TRANSPORT_ETHERNET);
     }
 
     public static boolean hasAnyInternet(Context ctx) {
@@ -42,33 +39,35 @@ public final class WifiHelper {
         return hasAnyInternet(ctx);
     }
 
+    /** Flavor-dependent; IDE may warn "always true/false" for the active variant. */
+    @SuppressWarnings("ConstantConditions")
     public static boolean isSim() {
         return "sim".equals(BuildConfig.FLAVOR);
     }
 
     public static String describe(Context ctx) {
         ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (cm == null) return ctx.getString(com.drivehub.mgha.R.string.net_none);
+        if (cm == null) return ctx.getString(R.string.net_none);
         Network net = cm.getActiveNetwork();
-        if (net == null) return ctx.getString(com.drivehub.mgha.R.string.net_none);
+        if (net == null) return ctx.getString(R.string.net_none);
         NetworkCapabilities caps = cm.getNetworkCapabilities(net);
-        if (caps == null) return ctx.getString(com.drivehub.mgha.R.string.net_none);
+        if (caps == null) return ctx.getString(R.string.net_none);
         if (!caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
-            return ctx.getString(com.drivehub.mgha.R.string.net_no_internet);
+            return ctx.getString(R.string.net_no_internet);
         }
         if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-            return ctx.getString(com.drivehub.mgha.R.string.net_wifi);
+            return ctx.getString(R.string.net_wifi);
         }
         if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
-            return ctx.getString(com.drivehub.mgha.R.string.net_cellular);
+            return ctx.getString(R.string.net_cellular);
         }
         if (caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
-            return ctx.getString(com.drivehub.mgha.R.string.net_ethernet);
+            return ctx.getString(R.string.net_ethernet);
         }
         if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
-            return ctx.getString(com.drivehub.mgha.R.string.net_vpn);
+            return ctx.getString(R.string.net_vpn);
         }
-        return ctx.getString(com.drivehub.mgha.R.string.net_other);
+        return ctx.getString(R.string.net_other);
     }
 
     private static boolean hasTransportInternet(Context ctx, int transport) {

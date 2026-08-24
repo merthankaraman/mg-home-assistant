@@ -155,12 +155,22 @@ public class HomeAssistantClient {
         }
     }
 
+    @android.annotation.SuppressLint({"CustomX509TrustManager", "BadHostnameVerifier"})
     private static void trustAll(HttpsURLConnection conn) throws Exception {
         TrustManager[] tm = new TrustManager[]{
                 new X509TrustManager() {
-                    @Override public void checkClientTrusted(X509Certificate[] c, String a) {}
-                    @Override public void checkServerTrusted(X509Certificate[] c, String a) {}
-                    @Override public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
+                    @Override
+                    @android.annotation.SuppressLint("TrustAllX509TrustManager")
+                    public void checkClientTrusted(X509Certificate[] c, String a) {}
+
+                    @Override
+                    @android.annotation.SuppressLint("TrustAllX509TrustManager")
+                    public void checkServerTrusted(X509Certificate[] c, String a) {}
+
+                    @Override
+                    public X509Certificate[] getAcceptedIssuers() {
+                        return new X509Certificate[0];
+                    }
                 }
         };
         SSLContext sc = SSLContext.getInstance("TLS");

@@ -35,7 +35,7 @@ public final class HaSettings {
 
     public static String prefix(Context ctx) {
         String p = prefs(ctx).getString(KEY_PREFIX, "mg4");
-        if (p == null || p.trim().isEmpty()) return "mg4";
+        if (p.trim().isEmpty()) return "mg4";
         return p.trim().toLowerCase().replaceAll("[^a-z0-9_]", "_");
     }
 
@@ -87,20 +87,6 @@ public final class HaSettings {
                 .putBoolean(KEY_INSECURE, insecure)
                 .putBoolean(KEY_AUTOSTART, autoStart)
                 .apply();
-    }
-
-    public static JSONObject toJson(Context ctx) {
-        JSONObject o = new JSONObject();
-        try {
-            o.put("url", url(ctx));
-            o.put("token", token(ctx));
-            o.put("prefix", prefix(ctx));
-            o.put("interval", intervalMin(ctx));
-            o.put("wifiOnly", wifiOnly(ctx));
-            o.put("insecure", allowInsecureSsl(ctx));
-            o.put("autoStart", autoStart(ctx));
-        } catch (Exception ignored) {}
-        return o;
     }
 
     public static boolean applyJson(Context ctx, JSONObject o) {

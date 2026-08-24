@@ -48,6 +48,7 @@
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="4dp"
+            android:autofillHints="url"
             android:background="@drawable/bg_field"
             android:hint="@string/hint_ha_url"
             android:inputType="textUri"
@@ -68,6 +69,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:baselineAligned="false"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -76,6 +78,7 @@
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_weight="1"
+                android:autofillHints="password"
                 android:background="@drawable/bg_field"
                 android:hint="@string/hint_ha_token"
                 android:importantForAutofill="no"
@@ -114,6 +117,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
+            android:baselineAligned="false"
             android:orientation="horizontal">
 
             <LinearLayout
@@ -121,6 +125,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
+                android:paddingStart="0dp"
                 android:paddingEnd="8dp">
 
                 <TextView
@@ -136,6 +141,7 @@
                     android:layout_marginTop="4dp"
                     android:background="@drawable/bg_field"
                     android:hint="@string/hint_prefix"
+                    android:importantForAutofill="no"
                     android:inputType="text"
                     android:paddingStart="12dp"
                     android:paddingEnd="12dp"
@@ -149,7 +155,8 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:paddingStart="8dp">
+                android:paddingStart="8dp"
+                android:paddingEnd="0dp">
 
                 <TextView
                     android:layout_width="match_parent"
@@ -164,6 +171,7 @@
                     android:layout_marginTop="4dp"
                     android:background="@drawable/bg_field"
                     android:hint="@string/hint_interval"
+                    android:importantForAutofill="no"
                     android:inputType="number"
                     android:paddingStart="12dp"
                     android:paddingEnd="12dp"
@@ -198,6 +206,7 @@
             android:textColor="@color/text" />
 
         <LinearLayout
+            style="?android:attr/buttonBarStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
@@ -205,6 +214,7 @@
 
             <Button
                 android:id="@+id/btn_save"
+                style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="0dp"
                 android:layout_height="52dp"
                 android:layout_marginEnd="8dp"
@@ -213,6 +223,7 @@
 
             <Button
                 android:id="@+id/btn_test"
+                style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="0dp"
                 android:layout_height="52dp"
                 android:layout_marginStart="8dp"
@@ -221,6 +232,7 @@
         </LinearLayout>
 
         <LinearLayout
+            style="?android:attr/buttonBarStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
@@ -228,6 +240,7 @@
 
             <Button
                 android:id="@+id/btn_start_stop"
+                style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="0dp"
                 android:layout_height="52dp"
                 android:layout_marginEnd="8dp"
@@ -236,6 +249,7 @@
 
             <Button
                 android:id="@+id/btn_send_now"
+                style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="0dp"
                 android:layout_height="52dp"
                 android:layout_marginStart="8dp"
