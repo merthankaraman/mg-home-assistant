@@ -137,7 +137,7 @@
     <string name="preview_tire_rl">Tire rear left: %1$s\n</string>
     <string name="preview_tire_rr">Tire rear right: %1$s\n</string>
     <string name="preview_location">Location: %1$s</string>
-    <string name="preview_unknown">?</string>
+    <string name="preview_unknown">\?</string>
     <!-- Number + unit: adjust order per locale (%1$s = number text) -->
     <string name="fmt_percent">%1$s%%</string>
     <string name="fmt_km">%1$s km</string>

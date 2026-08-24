@@ -137,7 +137,7 @@
     <string name="preview_tire_rl">Lastik Sol arka: %1$s\n</string>
     <string name="preview_tire_rr">Lastik Sağ arka: %1$s\n</string>
     <string name="preview_location">Konum: %1$s</string>
-    <string name="preview_unknown">?</string>
+    <string name="preview_unknown">\?</string>
     <!-- Sayı + birim: çeviride sırayı buradan ayarla (%1$s = sayı metni) -->
     <string name="fmt_percent">%%%1$s</string>
     <string name="fmt_km">%1$s km</string>
