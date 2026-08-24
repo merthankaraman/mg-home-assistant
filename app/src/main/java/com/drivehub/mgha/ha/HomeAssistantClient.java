@@ -1,6 +1,9 @@
 package com.drivehub.mgha.ha;
 
+import android.content.Context;
 import android.util.Log;
+
+import com.drivehub.mgha.R;
 
 import org.json.JSONObject;
 
@@ -54,11 +57,13 @@ public class HomeAssistantClient {
         }
     }
 
+    private final Context appCtx;
     private final String baseUrl;
     private final String token;
     private final boolean allowInsecureSsl;
 
-    public HomeAssistantClient(String baseUrl, String token, boolean allowInsecureSsl) {
+    public HomeAssistantClient(Context ctx, String baseUrl, String token, boolean allowInsecureSsl) {
+        this.appCtx = ctx.getApplicationContext();
         this.baseUrl = normalizeBase(baseUrl);
         this.token = token == null ? "" : token.trim();
         this.allowInsecureSsl = allowInsecureSsl;
@@ -92,8 +97,8 @@ public class HomeAssistantClient {
     }
 
     private Result request(String method, String path, String jsonBody) {
-        if (baseUrl.isEmpty()) return Result.fail("Home Assistant URL boş");
-        if (token.isEmpty()) return Result.fail("Token boş");
+        if (baseUrl.isEmpty()) return Result.fail(appCtx.getString(R.string.err_ha_url_empty));
+        if (token.isEmpty()) return Result.fail(appCtx.getString(R.string.err_ha_token_empty));
         HttpURLConnection conn = null;
         long t0 = System.currentTimeMillis();
         try {

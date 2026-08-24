@@ -65,7 +65,7 @@ public class HaBridgeService extends Service {
 
         VehicleReader.init(this);
         BridgeStatus.running = true;
-        BridgeStatus.lastMessage = "Servis açıldı";
+        BridgeStatus.lastMessage = getString(R.string.msg_service_started);
         registerNetworkCallback();
         worker.post(tickRunnable);
         broadcastStatus();
@@ -95,7 +95,7 @@ public class HaBridgeService extends Service {
         unregisterNetworkCallback();
         tryMarkOffline();
         BridgeStatus.running = false;
-        BridgeStatus.lastMessage = "Servis kapalı";
+        BridgeStatus.lastMessage = getString(R.string.msg_service_stopped);
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
         super.onDestroy();
         broadcastStatus();
@@ -104,7 +104,7 @@ public class HaBridgeService extends Service {
     private void tick() {
         Log.i(TAG, "tick başlıyor");
         try {
-            BridgeStatus.lastMessage = "Tick…";
+            BridgeStatus.lastMessage = getString(R.string.msg_tick);
             broadcastStatus();
 
             VehicleSnapshot snap = VehicleReader.read();
@@ -115,7 +115,7 @@ public class HaBridgeService extends Service {
             BridgeStatus.lastPreview = preview(snap);
 
             if (!HaSettings.isConfigured(this)) {
-                BridgeStatus.lastMessage = "URL ve token kaydedilmedi";
+                BridgeStatus.lastMessage = getString(R.string.msg_not_configured);
                 Log.i(TAG, BridgeStatus.lastMessage);
                 notifyText(BridgeStatus.lastMessage);
                 return;
@@ -132,52 +132,54 @@ public class HaBridgeService extends Service {
 
             if (!allowed) {
                 BridgeStatus.lastMessage = WifiHelper.isSim()
-                        ? "İnternet yok — gönderilmedi (" + WifiHelper.describe(this) + ")"
+                        ? getString(R.string.msg_no_internet_sim, WifiHelper.describe(this))
                         : (HaSettings.wifiOnly(this)
-                        ? "WiFi yok — gönderilmedi (aktif: " + WifiHelper.describe(this) + ")"
-                        : "İnternet yok — gönderilmedi");
+                        ? getString(R.string.msg_no_wifi, WifiHelper.describe(this))
+                        : getString(R.string.msg_no_internet));
                 notifyText(getString(R.string.notify_waiting_wifi));
                 return;
             }
 
             if (WifiHelper.isSim() && !HaSettings.demoMode(this) && !snap.carConnected) {
-                BridgeStatus.lastMessage = "Sim’de araç verisi yok — Demo modu aç";
+                BridgeStatus.lastMessage = getString(R.string.msg_sim_need_demo);
                 Log.i(TAG, BridgeStatus.lastMessage);
                 notifyText(BridgeStatus.lastMessage);
                 return;
             }
 
-            BridgeStatus.lastMessage = "HA’ya gönderiliyor…";
+            BridgeStatus.lastMessage = getString(R.string.msg_sending);
             notifyText(BridgeStatus.lastMessage);
             broadcastStatus();
 
             HomeAssistantClient client = new HomeAssistantClient(
+                    this,
                     HaSettings.url(this),
                     HaSettings.token(this),
                     HaSettings.allowInsecureSsl(this));
-            HaPublisher.PublishResult r = HaPublisher.publish(client, HaSettings.prefix(this), snap);
+            HaPublisher.PublishResult r = HaPublisher.publish(this, client, HaSettings.prefix(this), snap);
             BridgeStatus.lastOkCount = r.ok;
             BridgeStatus.lastFailCount = r.fail;
             BridgeStatus.lastSendAtMs = System.currentTimeMillis();
             BridgeStatus.lastSendOk = r.fail == 0 && r.ok > 0;
             if (BridgeStatus.lastSendOk) {
-                BridgeStatus.lastMessage = "Gönderildi: group.mg4 (ok " + r.ok + ")";
+                BridgeStatus.lastMessage = getString(R.string.msg_sent_ok, r.ok);
                 notifyText(getString(R.string.notify_sent));
             } else {
-                BridgeStatus.lastMessage = "Kısmi/hata: ok=" + r.ok + " fail=" + r.fail
-                        + (r.lastError != null ? (" " + r.lastError) : "");
+                String errPart = r.lastError != null ? (" " + r.lastError) : "";
+                BridgeStatus.lastMessage = getString(R.string.msg_sent_partial, r.ok, r.fail, errPart);
                 notifyText(getString(R.string.notify_error));
             }
             Log.i(TAG, BridgeStatus.lastMessage);
         } catch (Throwable t) {
             BridgeStatus.lastSendOk = false;
-            BridgeStatus.lastMessage = "Hata: " + t.getMessage();
+            BridgeStatus.lastMessage = getString(R.string.msg_error,
+                    t.getMessage() == null ? "" : t.getMessage());
             Log.e(TAG, "tick", t);
             notifyText(getString(R.string.notify_error));
         } finally {
             broadcastStatus();
             if (!shuttingDown && worker != null) {
-                long delay = HaSettings.intervalSec(this) * 1000L;
+                long delay = HaSettings.intervalMs(this);
                 worker.postDelayed(tickRunnable, delay);
             }
         }
@@ -188,10 +190,11 @@ public class HaBridgeService extends Service {
         if (!WifiHelper.canSend(this, HaSettings.wifiOnly(this))) return;
         try {
             HomeAssistantClient client = new HomeAssistantClient(
+                    this,
                     HaSettings.url(this),
                     HaSettings.token(this),
                     HaSettings.allowInsecureSsl(this));
-            HaPublisher.markOffline(client, HaSettings.prefix(this));
+            HaPublisher.markOffline(this, client, HaSettings.prefix(this));
         } catch (Throwable ignored) {}
     }
 
@@ -261,7 +264,7 @@ public class HaBridgeService extends Service {
         if (nm != null) nm.createNotificationChannel(ch);
     }
 
-    private static String preview(VehicleSnapshot s) {
-        return s.formatForScreen();
+    private String preview(VehicleSnapshot s) {
+        return s.formatForScreen(this);
     }
 }

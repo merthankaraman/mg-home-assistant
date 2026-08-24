@@ -1,5 +1,8 @@
 package com.drivehub.mgha.ha;
 
+import android.content.Context;
+
+import com.drivehub.mgha.R;
 import com.drivehub.mgha.hardware.VehicleSnapshot;
 
 import org.json.JSONArray;
@@ -19,10 +22,11 @@ public final class HaPublisher {
 
     private HaPublisher() {}
 
-    public static PublishResult publish(HomeAssistantClient client, String prefix, VehicleSnapshot snap) {
+    public static PublishResult publish(Context ctx, HomeAssistantClient client,
+                                        String prefix, VehicleSnapshot snap) {
         PublishResult out = new PublishResult();
         if (client == null || snap == null) {
-            out.lastError = "istemci veya veri yok";
+            out.lastError = ctx.getString(R.string.msg_client_missing);
             out.fail = 1;
             return out;
         }
@@ -30,42 +34,42 @@ public final class HaPublisher {
         JSONArray members = new JSONArray();
 
         postNum(client, out, members, "sensor." + p + "_battery", snap.socPercent,
-                attrs("Batarya", "%", "battery", "measurement", "mdi:battery"));
+                attrs(ctx.getString(R.string.ha_name_battery), "%", "battery", "measurement", "mdi:battery"));
         postInt(client, out, members, "sensor." + p + "_range", snap.rangeKm,
-                attrs("Menzil", "km", "distance", "measurement", "mdi:map-marker-distance"));
+                attrs(ctx.getString(R.string.ha_name_range), "km", "distance", "measurement", "mdi:map-marker-distance"));
         postInt(client, out, members, "sensor." + p + "_mileage", snap.odometerKm,
-                attrs("Kilometre", "km", "distance", "total_increasing", "mdi:counter"));
+                attrs(ctx.getString(R.string.ha_name_mileage), "km", "distance", "total_increasing", "mdi:counter"));
         postInt(client, out, members, "sensor." + p + "_exterior_temperature", snap.exteriorTempC,
-                attrs("Dış sıcaklık", "°C", "temperature", "measurement", "mdi:thermometer"));
+                attrs(ctx.getString(R.string.ha_name_exterior), "°C", "temperature", "measurement", "mdi:thermometer"));
         postBar(client, out, members, "sensor." + p + "_tire_pressure_fl", snap.tireKpaFl,
-                attrs("Lastik FL", "bar", "pressure", "measurement", "mdi:car-tire-alert"));
+                attrs(ctx.getString(R.string.ha_name_tire_fl), "bar", "pressure", "measurement", "mdi:car-tire-alert"));
         postBar(client, out, members, "sensor." + p + "_tire_pressure_fr", snap.tireKpaFr,
-                attrs("Lastik FR", "bar", "pressure", "measurement", "mdi:car-tire-alert"));
+                attrs(ctx.getString(R.string.ha_name_tire_fr), "bar", "pressure", "measurement", "mdi:car-tire-alert"));
         postBar(client, out, members, "sensor." + p + "_tire_pressure_rl", snap.tireKpaRl,
-                attrs("Lastik RL", "bar", "pressure", "measurement", "mdi:car-tire-alert"));
+                attrs(ctx.getString(R.string.ha_name_tire_rl), "bar", "pressure", "measurement", "mdi:car-tire-alert"));
         postBar(client, out, members, "sensor." + p + "_tire_pressure_rr", snap.tireKpaRr,
-                attrs("Lastik RR", "bar", "pressure", "measurement", "mdi:car-tire-alert"));
-        postStr(client, out, members, "sensor." + p + "_charging_status", chargeLabel(snap.chargeStatus),
-                attrs("Şarj durumu", null, null, null, "mdi:ev-station"));
+                attrs(ctx.getString(R.string.ha_name_tire_rr), "bar", "pressure", "measurement", "mdi:car-tire-alert"));
+        postStr(client, out, members, "sensor." + p + "_charging_status", chargeState(snap.chargeStatus),
+                attrs(ctx.getString(R.string.ha_name_charging_status), null, null, null, "mdi:ev-station"));
         postNum(client, out, members, "sensor." + p + "_ac_voltage", snap.acVoltageV,
-                attrs("AC voltaj", "V", "voltage", "measurement", "mdi:flash"));
+                attrs(ctx.getString(R.string.ha_name_ac_voltage), "V", "voltage", "measurement", "mdi:flash"));
         postNum(client, out, members, "sensor." + p + "_ac_current", snap.acCurrentA,
-                attrs("AC akım", "A", "current", "measurement", "mdi:current-ac"));
+                attrs(ctx.getString(R.string.ha_name_ac_current), "A", "current", "measurement", "mdi:current-ac"));
         postNum(client, out, members, "sensor." + p + "_battery_voltage", snap.batteryVoltageV,
-                attrs("Batarya voltaj", "V", "voltage", "measurement", "mdi:car-battery"));
+                attrs(ctx.getString(R.string.ha_name_battery_voltage), "V", "voltage", "measurement", "mdi:car-battery"));
         postNum(client, out, members, "sensor." + p + "_battery_current", snap.batteryCurrentA,
-                attrs("Batarya akım", "A", "current", "measurement", "mdi:current-dc"));
+                attrs(ctx.getString(R.string.ha_name_battery_current), "A", "current", "measurement", "mdi:current-dc"));
         postNum(client, out, members, "sensor." + p + "_charging_power", snap.chargePowerKw,
-                attrs("Şarj gücü", "kW", "power", "measurement", "mdi:flash"));
+                attrs(ctx.getString(R.string.ha_name_charging_power), "kW", "power", "measurement", "mdi:flash"));
         postStr(client, out, members, "binary_sensor." + p + "_charging",
                 snap.charging ? "on" : "off",
-                binAttrs("Şarjda", "battery_charging", "mdi:battery-charging"));
+                binAttrs(ctx.getString(R.string.ha_name_charging), "battery_charging", "mdi:battery-charging"));
         postStr(client, out, members, "sensor." + p + "_last_update", isoUtc(snap.capturedAtMs),
-                attrs("Son güncelleme", null, "timestamp", null, "mdi:clock-outline"));
+                attrs(ctx.getString(R.string.ha_name_last_update), null, "timestamp", null, "mdi:clock-outline"));
         if (!Double.isNaN(snap.latitude) && !Double.isNaN(snap.longitude)) {
             JSONObject a = new JSONObject();
             try {
-                a.put("friendly_name", "Konum");
+                a.put("friendly_name", ctx.getString(R.string.ha_name_location));
                 a.put("source_type", "gps");
                 a.put("latitude", snap.latitude);
                 a.put("longitude", snap.longitude);
@@ -76,20 +80,17 @@ public final class HaPublisher {
         }
 
         if (members.length() > 0) {
-            ensureGroup(client, out, p, members);
+            ensureGroup(ctx, client, out, p, members);
         }
         return out;
     }
 
-    /**
-     * Modern HA’da {@code group:} YAML yoksa {@code group.set} servisi hiç yüklenmez.
-     * Bu yüzden önce states API ile {@code group.&lt;prefix&gt;} yazarız; set yedek kalır.
-     */
-    private static void ensureGroup(HomeAssistantClient client, PublishResult out,
+    private static void ensureGroup(Context ctx, HomeAssistantClient client, PublishResult out,
                                     String objectId, JSONArray members) {
+        String groupName = ctx.getString(R.string.ha_name_group);
         JSONObject attrs = new JSONObject();
         try {
-            attrs.put("friendly_name", "MG4");
+            attrs.put("friendly_name", groupName);
             attrs.put("icon", "mdi:car-electric");
             attrs.put("entity_id", members);
             attrs.put("order", 0);
@@ -101,11 +102,10 @@ public final class HaPublisher {
             return;
         }
 
-        // Eski kurulumlarda group.set çalışıyor olabilir
         try {
             JSONObject g = new JSONObject();
             g.put("object_id", objectId);
-            g.put("name", "MG4");
+            g.put("name", groupName);
             g.put("icon", "mdi:car-electric");
             g.put("entities", members);
             HomeAssistantClient.Result gr = client.callService("group", "set", g);
@@ -114,17 +114,18 @@ public final class HaPublisher {
                 return;
             }
             out.fail++;
-            out.lastError = "grup: " + formatErr(gr);
-            android.util.Log.e("MGHA_HA", "group başarısız: " + out.lastError);
+            out.lastError = ctx.getString(R.string.msg_group_fail, formatErr(ctx, gr));
+            android.util.Log.e("MGHA_HA", out.lastError);
         } catch (Exception e) {
             out.fail++;
-            out.lastError = "grup: states=" + formatErr(st) + " set=" + e.getMessage();
+            out.lastError = ctx.getString(R.string.msg_group_fail,
+                    "states=" + formatErr(ctx, st) + " set=" + e.getMessage());
             android.util.Log.e("MGHA_HA", out.lastError);
         }
     }
 
-    private static String formatErr(HomeAssistantClient.Result r) {
-        if (r == null) return "?";
+    private static String formatErr(Context ctx, HomeAssistantClient.Result r) {
+        if (r == null) return ctx.getString(R.string.preview_unknown);
         StringBuilder sb = new StringBuilder();
         if (r.error != null) sb.append(r.error);
         if (r.httpCode > 0) {
@@ -137,17 +138,18 @@ public final class HaPublisher {
             if (b.length() > 200) b = b.substring(0, 200);
             sb.append(b);
         }
-        return sb.length() == 0 ? "bilinmeyen hata" : sb.toString();
+        return sb.length() == 0 ? ctx.getString(R.string.msg_unknown_error) : sb.toString();
     }
 
-    public static HomeAssistantClient.Result markOffline(HomeAssistantClient client, String prefix) {
+    public static HomeAssistantClient.Result markOffline(Context ctx, HomeAssistantClient client,
+                                                         String prefix) {
         String p = sanitize(prefix);
         JSONObject attr = new JSONObject();
         try {
-            attr.put("friendly_name", "MG4");
+            attr.put("friendly_name", ctx.getString(R.string.ha_name_group));
         } catch (Exception ignored) {}
         HomeAssistantClient.Result last = client.postState("binary_sensor." + p + "_charging", "off",
-                binAttrs("Şarjda", "battery_charging", "mdi:battery-charging"));
+                binAttrs(ctx.getString(R.string.ha_name_charging), "battery_charging", "mdi:battery-charging"));
         String[] sensors = {
                 "sensor." + p + "_battery",
                 "sensor." + p + "_range",
@@ -249,7 +251,8 @@ public final class HaPublisher {
         return a;
     }
 
-    public static String chargeLabel(int st) {
+    /** HA state kodları (makine kimliği; çeviriye girmez). */
+    public static String chargeState(int st) {
         switch (st) {
             case 0: return "unplugged";
             case 1: return "charging_ac";

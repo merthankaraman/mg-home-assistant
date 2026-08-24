@@ -13,7 +13,7 @@ public final class HaSettings {
     public static final String KEY_URL = "ha_url";
     public static final String KEY_TOKEN = "ha_token";
     public static final String KEY_PREFIX = "entity_prefix";
-    public static final String KEY_INTERVAL = "interval_sec";
+    public static final String KEY_INTERVAL_MIN = "interval_min";
     public static final String KEY_WIFI_ONLY = "wifi_only";
     public static final String KEY_INSECURE = "allow_insecure_ssl";
     public static final String KEY_AUTOSTART = "autostart";
@@ -39,11 +39,13 @@ public final class HaSettings {
         return p.trim().toLowerCase().replaceAll("[^a-z0-9_]", "_");
     }
 
-    public static int intervalSec(Context ctx) {
-        int v = prefs(ctx).getInt(KEY_INTERVAL, 30);
-        if (v < 5) return 5;
-        if (v > 300) return 300;
-        return v;
+    /** Gönderim aralığı (dakika). En az 1; üst sınır yok. */
+    public static int intervalMin(Context ctx) {
+        return Math.max(1, prefs(ctx).getInt(KEY_INTERVAL_MIN, 1));
+    }
+
+    public static long intervalMs(Context ctx) {
+        return intervalMin(ctx) * 60_000L;
     }
 
     public static boolean wifiOnly(Context ctx) {
@@ -75,12 +77,12 @@ public final class HaSettings {
     }
 
     public static void save(Context ctx, String url, String token, String prefix,
-                            int intervalSec, boolean wifiOnly, boolean insecure, boolean autoStart) {
+                            int intervalMin, boolean wifiOnly, boolean insecure, boolean autoStart) {
         prefs(ctx).edit()
                 .putString(KEY_URL, url == null ? "" : url.trim())
                 .putString(KEY_TOKEN, token == null ? "" : token.trim())
                 .putString(KEY_PREFIX, prefix)
-                .putInt(KEY_INTERVAL, intervalSec)
+                .putInt(KEY_INTERVAL_MIN, Math.max(1, intervalMin))
                 .putBoolean(KEY_WIFI_ONLY, wifiOnly)
                 .putBoolean(KEY_INSECURE, insecure)
                 .putBoolean(KEY_AUTOSTART, autoStart)
@@ -93,7 +95,7 @@ public final class HaSettings {
             o.put("url", url(ctx));
             o.put("token", token(ctx));
             o.put("prefix", prefix(ctx));
-            o.put("interval", intervalSec(ctx));
+            o.put("interval", intervalMin(ctx));
             o.put("wifiOnly", wifiOnly(ctx));
             o.put("insecure", allowInsecureSsl(ctx));
             o.put("autoStart", autoStart(ctx));
@@ -107,7 +109,7 @@ public final class HaSettings {
         String t = o.optString("token", "").trim();
         if (u.isEmpty() || t.isEmpty()) return false;
         save(ctx, u, t, o.optString("prefix", "mg4"),
-                o.optInt("interval", 30),
+                o.optInt("interval", 1),
                 o.optBoolean("wifiOnly", !WifiHelper.isSim()),
                 o.optBoolean("insecure", false),
                 o.optBoolean("autoStart", true));

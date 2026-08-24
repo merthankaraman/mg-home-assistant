@@ -1,8 +1,11 @@
 package com.drivehub.mgha.sync;
 
+import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+
+import com.drivehub.mgha.R;
 
 import org.json.JSONObject;
 
@@ -41,6 +44,7 @@ public final class ConfigWebServer {
     private final Handler main = new Handler(Looper.getMainLooper());
     private final AtomicBoolean running = new AtomicBoolean(false);
     private ServerSocket server;
+    private Context appCtx;
 
     public void stop() {
         running.set(false);
@@ -54,8 +58,9 @@ public final class ConfigWebServer {
         return running.get();
     }
 
-    public void start(Listener listener) {
+    public void start(Context context, Listener listener) {
         stop();
+        appCtx = context.getApplicationContext();
         running.set(true);
         Thread t = new Thread(() -> serveLoop(listener), "mgha-cfg-web");
         t.setDaemon(true);
@@ -66,14 +71,14 @@ public final class ConfigWebServer {
         try {
             String ip = localIpv4();
             if (ip == null) {
-                fail(listener, "WiFi IP yok — araba ve telefon aynı ağa bağlı olsun");
+                fail(listener, str(R.string.msg_no_wifi_ip));
                 return;
             }
             String openUrl = "http://" + ip + ":" + PORT + "/";
             server = new ServerSocket(PORT);
             server.setSoTimeout(1000);
             main.post(() -> listener.onReady(openUrl));
-            status(listener, "Telefondan aç: " + openUrl);
+            status(listener, str(R.string.msg_waiting_phone, openUrl));
 
             long end = System.currentTimeMillis() + TIMEOUT_MS;
             while (running.get() && System.currentTimeMillis() < end) {
@@ -84,7 +89,7 @@ public final class ConfigWebServer {
                 }
             }
             if (running.get()) {
-                fail(listener, "Süre doldu. Telefonda sayfayı açıp Gönder’e bas.");
+                fail(listener, str(R.string.msg_web_timeout));
             }
         } catch (Exception e) {
             fail(listener, e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
@@ -121,11 +126,12 @@ public final class ConfigWebServer {
                 String raw = new String(body, StandardCharsets.UTF_8);
                 JSONObject cfg = parseBody(raw);
                 if (cfg == null) {
-                    writeHttp(sock, 400, "text/html; charset=utf-8", resultPage(false, "URL ve token gerekli."));
+                    writeHttp(sock, 400, "text/html; charset=utf-8",
+                            resultPage(false, str(R.string.msg_web_need_fields)));
                     return;
                 }
                 writeHttp(sock, 200, "text/html; charset=utf-8",
-                        resultPage(true, "Kaydedildi. Arabaya bak — ayarlar alındı."));
+                        resultPage(true, str(R.string.msg_web_saved)));
                 running.set(false);
                 main.post(() -> listener.onReceived(cfg));
                 return;
@@ -136,6 +142,14 @@ public final class ConfigWebServer {
         } finally {
             try { sock.close(); } catch (Exception ignored) {}
         }
+    }
+
+    private String str(int resId) {
+        return appCtx.getString(resId);
+    }
+
+    private String str(int resId, Object... args) {
+        return appCtx.getString(resId, args);
     }
 
     private static JSONObject parseBody(String raw) {
@@ -182,10 +196,10 @@ public final class ConfigWebServer {
         }
     }
 
-    private static String htmlPage() {
+    private String htmlPage() {
         return "<!DOCTYPE html><html><head><meta charset=utf-8>"
                 + "<meta name=viewport content=\"width=device-width,initial-scale=1\">"
-                + "<title>MG HA ayar</title><style>"
+                + "<title>" + esc(str(R.string.web_title)) + "</title><style>"
                 + "body{font-family:system-ui,sans-serif;background:#0D1B2A;color:#E8F4FD;"
                 + "margin:0;padding:24px;max-width:480px}"
                 + "h1{color:#03A9F4;font-size:22px;margin:0 0 8px}"
@@ -197,37 +211,43 @@ public final class ConfigWebServer {
                 + "button{margin-top:24px;width:100%;padding:16px;border:0;border-radius:8px;"
                 + "background:#03A9F4;color:#041018;font-size:17px;font-weight:700}"
                 + "</style></head><body>"
-                + "<h1>MG → Home Assistant</h1>"
-                + "<p>HA adresini ve long-lived token’ı buraya yapıştır. Gönder’e basınca araba kaydeder.</p>"
+                + "<h1>" + esc(str(R.string.web_heading)) + "</h1>"
+                + "<p>" + esc(str(R.string.web_intro)) + "</p>"
                 + "<form method=POST action=/>"
-                + "<label>Home Assistant URL"
-                + "<input name=url type=url required placeholder=\"https://ornek.duckdns.org:8123\" "
+                + "<label>" + esc(str(R.string.web_label_url))
+                + "<input name=url type=url required placeholder=\""
+                + esc(str(R.string.hint_ha_url)) + "\" "
                 + "autocomplete=url></label>"
-                + "<label>Long-lived access token"
-                + "<input name=token type=text required placeholder=\"eyJhbGciOi...\" "
+                + "<label>" + esc(str(R.string.web_label_token))
+                + "<input name=token type=text required placeholder=\""
+                + esc(str(R.string.hint_ha_token)) + "\" "
                 + "autocomplete=off autocapitalize=off spellcheck=false></label>"
-                + "<label>Önek (isteğe bağlı)"
-                + "<input name=prefix type=text value=mg4 placeholder=mg4></label>"
-                + "<button type=submit>Arabaya kaydet</button>"
+                + "<label>" + esc(str(R.string.web_label_prefix))
+                + "<input name=prefix type=text value=\""
+                + esc(str(R.string.default_prefix)) + "\" placeholder=\""
+                + esc(str(R.string.hint_prefix)) + "\"></label>"
+                + "<button type=submit>" + esc(str(R.string.web_btn_save)) + "</button>"
                 + "</form></body></html>";
     }
 
-    private static String resultPage(boolean ok, String msg) {
+    private String resultPage(boolean ok, String msg) {
         String color = ok ? "#4CAF50" : "#EF5350";
+        String title = str(ok ? R.string.web_result_ok : R.string.web_result_fail);
         return "<!DOCTYPE html><html><head><meta charset=utf-8>"
                 + "<meta name=viewport content=\"width=device-width,initial-scale=1\">"
-                + "<title>MG HA</title><style>"
+                + "<title>" + esc(str(R.string.web_title)) + "</title><style>"
                 + "body{font-family:system-ui,sans-serif;background:#0D1B2A;color:#E8F4FD;"
                 + "padding:32px;text-align:center}"
                 + "h1{color:" + color + "}"
                 + "p{color:#8BA3B8}"
-                + "</style></head><body><h1>" + (ok ? "Tamam" : "Hata") + "</h1>"
+                + "</style></head><body><h1>" + esc(title) + "</h1>"
                 + "<p>" + esc(msg) + "</p></body></html>";
     }
 
     private static String esc(String s) {
         if (s == null) return "";
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                .replace("\"", "&quot;");
     }
 
     private static String readHeaders(InputStream in) throws Exception {
@@ -265,7 +285,7 @@ public final class ConfigWebServer {
         int off = 0;
         while (off < len) {
             int n = in.read(b, off, len - off);
-            if (n < 0) throw new Exception("body kısa");
+            if (n < 0) throw new Exception("short body");
             off += n;
         }
         return b;
@@ -291,7 +311,8 @@ public final class ConfigWebServer {
 
     private void fail(Listener l, String reason) {
         running.set(false);
-        main.post(() -> l.onFailed(reason == null ? "hata" : reason));
+        String msg = reason == null ? str(R.string.msg_generic_error) : reason;
+        main.post(() -> l.onFailed(msg));
     }
 
     static String localIpv4() {

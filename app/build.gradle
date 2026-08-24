@@ -14,7 +14,7 @@ android {
         applicationId "com.drivehub.mgha"
         minSdk 28
         targetSdk 33
-        versionCode 7
+        versionCode 1
         versionName "0.1.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"

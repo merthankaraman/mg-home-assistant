@@ -94,8 +94,10 @@ public class MainActivity extends AppCompatActivity {
         demoBtn = findViewById(R.id.btn_demo);
 
         TextView versionView = findViewById(R.id.text_version);
-        versionView.setText("v" + BuildConfig.VERSION_NAME
-                + "  (" + BuildConfig.FLAVOR + (BuildConfig.DEBUG ? " debug" : "") + ")");
+        versionView.setText(getString(R.string.version_format,
+                BuildConfig.VERSION_NAME,
+                BuildConfig.FLAVOR,
+                BuildConfig.DEBUG ? getString(R.string.version_debug_suffix) : ""));
 
         loadFromSettings();
 
@@ -150,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
         urlView.setText(HaSettings.url(this));
         tokenView.setText(HaSettings.token(this));
         prefixView.setText(HaSettings.prefix(this));
-        intervalView.setText(String.valueOf(HaSettings.intervalSec(this)));
+        intervalView.setText(String.valueOf(HaSettings.intervalMin(this)));
         wifiOnlyView.setChecked(HaSettings.wifiOnly(this));
         insecureView.setChecked(HaSettings.allowInsecureSsl(this));
         autoStartView.setChecked(HaSettings.autoStart(this));
@@ -179,7 +181,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveSettings() {
-        int interval = 30;
+        int interval = 1;
         try {
             interval = Integer.parseInt(intervalView.getText().toString().trim());
         } catch (Exception ignored) {}
@@ -191,29 +193,31 @@ public class MainActivity extends AppCompatActivity {
                 wifiOnlyView.isChecked(),
                 insecureView.isChecked(),
                 autoStartView.isChecked());
-        Toast.makeText(this, "Kaydedildi", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, R.string.toast_saved, Toast.LENGTH_SHORT).show();
         refreshStatus();
     }
 
     private void testHa() {
         saveSettings();
         if (!HaSettings.isConfigured(this)) {
-            Toast.makeText(this, "Önce URL ve token gir", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.toast_need_url_token, Toast.LENGTH_SHORT).show();
             return;
         }
         new Thread(() -> {
             HomeAssistantClient client = new HomeAssistantClient(
+                    this,
                     HaSettings.url(this),
                     HaSettings.token(this),
                     HaSettings.allowInsecureSsl(this));
             HomeAssistantClient.Result r = client.testConnection();
             runOnUiThread(() -> {
                 if (r.ok) {
-                    Toast.makeText(this, "Home Assistant bağlı", Toast.LENGTH_SHORT).show();
-                    statusView.setText("HA test: OK " + (r.body == null ? "" : r.body));
+                    Toast.makeText(this, R.string.toast_ha_ok, Toast.LENGTH_SHORT).show();
+                    statusView.setText(getString(R.string.ha_test_ok, r.body == null ? "" : r.body));
                 } else {
-                    Toast.makeText(this, "HA test başarısız", Toast.LENGTH_SHORT).show();
-                    statusView.setText("HA test hata: " + (r.error != null ? r.error : r.body));
+                    Toast.makeText(this, R.string.toast_ha_fail, Toast.LENGTH_SHORT).show();
+                    statusView.setText(getString(R.string.ha_test_fail,
+                            r.error != null ? r.error : r.body));
                 }
             });
         }, "mgha-test").start();
@@ -225,7 +229,7 @@ public class MainActivity extends AppCompatActivity {
             stopService(new Intent(this, HaBridgeService.class));
         } else {
             if (!HaSettings.isConfigured(this)) {
-                Toast.makeText(this, "Önce URL ve token kaydet", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, R.string.toast_need_url_token_save, Toast.LENGTH_SHORT).show();
                 return;
             }
             ContextCompat.startForegroundService(this, new Intent(this, HaBridgeService.class));
@@ -238,11 +242,11 @@ public class MainActivity extends AppCompatActivity {
     private void sendNow() {
         saveSettings();
         if (!HaSettings.isConfigured(this)) {
-            Toast.makeText(this, "Önce URL ve token kaydet", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.toast_need_url_token_save, Toast.LENGTH_SHORT).show();
             return;
         }
         ensureServiceAndTick();
-        Toast.makeText(this, "Şimdi gönderiliyor", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, R.string.toast_sending_now, Toast.LENGTH_SHORT).show();
     }
 
     private void toggleDemo() {
@@ -253,14 +257,13 @@ public class MainActivity extends AppCompatActivity {
         refreshLocalPreview();
         if (next) {
             if (!HaSettings.isConfigured(this)) {
-                Toast.makeText(this, "Demo veri ekranda. HA'ya gitmesi için URL ve token gir.",
-                        Toast.LENGTH_LONG).show();
+                Toast.makeText(this, R.string.toast_demo_need_config, Toast.LENGTH_LONG).show();
                 return;
             }
             ensureServiceAndTick();
-            Toast.makeText(this, "Demo açık — sahte veri HA'ya gönderiliyor", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.toast_demo_on, Toast.LENGTH_SHORT).show();
         } else {
-            Toast.makeText(this, "Demo kapalı", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.toast_demo_off, Toast.LENGTH_SHORT).show();
             if (BridgeStatus.running) {
                 ensureServiceAndTick();
             }
@@ -279,36 +282,42 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void refreshDemoButton() {
-        demoBtn.setText(HaSettings.demoMode(this) ? "Demo modu açık — kapat" : "Demo modu");
+        demoBtn.setText(HaSettings.demoMode(this) ? R.string.btn_demo_on : R.string.btn_demo);
     }
 
     private void refreshStatus() {
-        startStopBtn.setText(BridgeStatus.running ? "Servisi durdur" : "Servisi başlat");
+        startStopBtn.setText(BridgeStatus.running ? R.string.btn_service_stop : R.string.btn_service_start);
         refreshDemoButton();
         String last = BridgeStatus.lastSendAtMs == 0
-                ? "-"
+                ? getString(R.string.em_dash)
                 : new SimpleDateFormat("HH:mm:ss", Locale.getDefault())
                 .format(new Date(BridgeStatus.lastSendAtMs));
         StringBuilder sb = new StringBuilder();
-        sb.append("Servis: ").append(BridgeStatus.running ? "AÇIK" : "KAPALI").append('\n');
-        sb.append("Mod: ").append(HaSettings.demoMode(this) ? "DEMO" : "araç").append('\n');
+        sb.append(getString(R.string.status_service,
+                getString(BridgeStatus.running ? R.string.status_on : R.string.status_off))).append('\n');
+        sb.append(getString(R.string.status_mode,
+                getString(HaSettings.demoMode(this) ? R.string.status_mode_demo : R.string.status_mode_car))).append('\n');
         if (!HaSettings.demoMode(this)) {
-            sb.append("Araç CPM: ").append(VehicleReader.isReady() ? "bağlı" : "yok").append('\n');
+            sb.append(getString(R.string.status_cpm,
+                    getString(VehicleReader.isReady() ? R.string.status_ready : R.string.status_missing))).append('\n');
         }
-        sb.append("Ağ: ").append(WifiHelper.describe(this));
-        sb.append("  (any ").append(WifiHelper.hasAnyInternet(this) ? "var" : "yok");
-        sb.append(", WiFi ").append(WifiHelper.hasWifiInternet(this) ? "var" : "yok").append(")\n");
+        sb.append(getString(R.string.status_net,
+                WifiHelper.describe(this),
+                getString(WifiHelper.hasAnyInternet(this) ? R.string.status_yes : R.string.status_no),
+                getString(WifiHelper.hasWifiInternet(this) ? R.string.status_yes : R.string.status_no))).append('\n');
         if (WifiHelper.isSim()) {
-            sb.append("Sim: WiFi şart değil — hücresel/ethernet OK\n");
+            sb.append(getString(R.string.status_sim_hint)).append('\n');
         }
-        sb.append("Yapılandırma: ").append(HaSettings.isConfigured(this) ? "tamam" : "URL/token eksik").append('\n');
-        sb.append("Son gönderim: ").append(last);
+        sb.append(getString(R.string.status_config,
+                getString(HaSettings.isConfigured(this)
+                        ? R.string.status_config_ok : R.string.status_config_missing))).append('\n');
+        sb.append(getString(R.string.status_last_send, last));
         if (BridgeStatus.lastOkCount + BridgeStatus.lastFailCount > 0) {
-            sb.append("  (ok ").append(BridgeStatus.lastOkCount)
-                    .append(" / fail ").append(BridgeStatus.lastFailCount).append(')');
+            sb.append(getString(R.string.status_counts,
+                    BridgeStatus.lastOkCount, BridgeStatus.lastFailCount));
         }
         sb.append('\n');
-        sb.append("Durum: ").append(BridgeStatus.lastMessage);
+        sb.append(getString(R.string.status_line, BridgeStatus.lastMessage));
         statusView.setText(sb.toString());
         if (BridgeStatus.lastPreview != null && !BridgeStatus.lastPreview.isEmpty()) {
             previewView.setText(BridgeStatus.lastPreview);
@@ -317,18 +326,18 @@ public class MainActivity extends AppCompatActivity {
 
     private void refreshLocalPreview() {
         VehicleSnapshot s = VehicleReader.read();
-        previewView.setText(s.formatForScreen());
+        previewView.setText(s.formatForScreen(this));
         if (!BridgeStatus.running) {
             BridgeStatus.carOk = s.carConnected;
             refreshStatus();
-            previewView.setText(s.formatForScreen());
+            previewView.setText(s.formatForScreen(this));
         }
     }
 
     private void pasteFromClipboard() {
         ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
         if (cm == null || !cm.hasPrimaryClip()) {
-            Toast.makeText(this, "Pano boş", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.toast_clipboard_empty, Toast.LENGTH_SHORT).show();
             return;
         }
         ClipData clip = cm.getPrimaryClip();
@@ -336,23 +345,23 @@ public class MainActivity extends AppCompatActivity {
                 ? null : clip.getItemAt(0).coerceToText(this);
         String t = cs == null ? "" : cs.toString().trim();
         if (t.isEmpty()) {
-            Toast.makeText(this, "Pano boş", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.toast_clipboard_empty, Toast.LENGTH_SHORT).show();
             return;
         }
         JSONObject cfg = HaSettings.parseConfig(t);
         if (cfg != null && HaSettings.applyJson(this, cfg)) {
             loadFromSettings();
             refreshStatus();
-            Toast.makeText(this, "Ayarlar panodan alındı", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.toast_settings_from_clipboard, Toast.LENGTH_SHORT).show();
             return;
         }
         if (t.startsWith("http://") || t.startsWith("https://")) {
             urlView.setText(t);
-            Toast.makeText(this, "URL yapıştırıldı", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.toast_url_pasted, Toast.LENGTH_SHORT).show();
             return;
         }
         tokenView.setText(t);
-        Toast.makeText(this, "Token yapıştırıldı — Kaydet’e bas", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, R.string.toast_token_pasted, Toast.LENGTH_SHORT).show();
     }
 
     private void startFromWeb() {
@@ -363,16 +372,16 @@ public class MainActivity extends AppCompatActivity {
         urlViewBig.setTextColor(ContextCompat.getColor(this, R.color.accent));
         urlViewBig.setPadding(24, 24, 24, 8);
         urlViewBig.setTextIsSelectable(true);
-        urlViewBig.setText("Bağlantı hazırlanıyor…");
+        urlViewBig.setText(R.string.dialog_preparing_link);
         pairingDialog = new AlertDialog.Builder(this)
-                .setTitle("Siteden al")
-                .setMessage("Telefon ve araba aynı WiFi’de olsun. Telefonda tarayıcıya şu adresi yaz, token’ı yapıştırıp gönder.")
+                .setTitle(R.string.dialog_from_web_title)
+                .setMessage(R.string.dialog_from_web_message)
                 .setView(urlViewBig)
-                .setNegativeButton("İptal", (d, w) -> webServer.stop())
+                .setNegativeButton(R.string.btn_cancel, (d, w) -> webServer.stop())
                 .setCancelable(false)
                 .create();
         pairingDialog.show();
-        webServer.start(new ConfigWebServer.Listener() {
+        webServer.start(this, new ConfigWebServer.Listener() {
             @Override
             public void onReady(String openUrl) {
                 urlViewBig.setText(openUrl);
@@ -391,7 +400,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onReceived(JSONObject cfg) {
-                applyIncoming(cfg, "Siteden alındı");
+                applyIncoming(cfg, getString(R.string.toast_from_web_ok));
             }
 
             @Override
@@ -405,7 +414,7 @@ public class MainActivity extends AppCompatActivity {
     private void applyIncoming(JSONObject cfg, String okMsg) {
         dismissPairingDialog();
         if (!HaSettings.applyJson(this, cfg)) {
-            Toast.makeText(this, "Gelen ayar eksik", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, R.string.toast_config_incomplete, Toast.LENGTH_LONG).show();
             return;
         }
         loadFromSettings();

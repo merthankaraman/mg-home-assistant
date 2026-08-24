@@ -6,4 +6,181 @@
     <string name="notify_waiting_wifi">WiFi bekleniyor</string>
     <string name="notify_sent">Home Assistant güncellendi</string>
     <string name="notify_error">Gönderilemedi</string>
+
+    <!-- Main screen -->
+    <string name="title_main">MG4 → Home Assistant</string>
+    <string name="version_placeholder">v—</string>
+    <string name="version_format">v%1$s  (%2$s%3$s)</string>
+    <string name="version_debug_suffix"> debug</string>
+    <string name="subtitle_main">SOC, menzil, km, lastik, dış sıcaklık, şarj ve konum. Sim’de Demo modu ile dene.</string>
+    <string name="label_ha_url">Home Assistant URL</string>
+    <string name="hint_ha_url">https://ornek.duckdns.org:8123</string>
+    <string name="label_ha_token">Long-lived access token</string>
+    <string name="hint_ha_token">eyJhbGciOi…</string>
+    <string name="btn_paste">Yapıştır</string>
+    <string name="hint_token_transfer">Token’ı arabada yazma: Siteden al → telefonda tarayıcıya yapıştır (APK gerekmez).</string>
+    <string name="btn_from_web">Siteden al</string>
+    <string name="label_prefix">Varlık öneki</string>
+    <string name="hint_prefix">mg4</string>
+    <string name="default_prefix">mg4</string>
+    <string name="label_interval">Aralık (dakika)</string>
+    <string name="hint_interval">1</string>
+    <string name="default_interval">1</string>
+    <string name="check_wifi_only">Sadece WiFi varken gönder (sim’de yok sayılır)</string>
+    <string name="check_insecure_ssl">Kendinden imzalı SSL kabul et</string>
+    <string name="check_autostart">Açılışta servisi başlat</string>
+    <string name="btn_save">Kaydet</string>
+    <string name="btn_ha_test">HA test</string>
+    <string name="btn_service_start">Servisi başlat</string>
+    <string name="btn_service_stop">Servisi durdur</string>
+    <string name="btn_send_now">Şimdi gönder</string>
+    <string name="btn_demo">Demo modu</string>
+    <string name="btn_demo_on">Demo modu açık — kapat</string>
+    <string name="label_status">Durum</string>
+    <string name="label_preview">Gösterilen veri</string>
+    <string name="preview_waiting">Veri bekleniyor…</string>
+    <string name="em_dash">—</string>
+
+    <!-- Toasts / dialogs -->
+    <string name="toast_saved">Kaydedildi</string>
+    <string name="toast_need_url_token">Önce URL ve token gir</string>
+    <string name="toast_need_url_token_save">Önce URL ve token kaydet</string>
+    <string name="toast_ha_ok">Home Assistant bağlı</string>
+    <string name="toast_ha_fail">HA test başarısız</string>
+    <string name="ha_test_ok">HA test: OK %1$s</string>
+    <string name="ha_test_fail">HA test hata: %1$s</string>
+    <string name="toast_sending_now">Şimdi gönderiliyor</string>
+    <string name="toast_demo_need_config">Demo veri ekranda. HA’ya gitmesi için URL ve token gir.</string>
+    <string name="toast_demo_on">Demo açık — sahte veri HA’ya gönderiliyor</string>
+    <string name="toast_demo_off">Demo kapalı</string>
+    <string name="toast_clipboard_empty">Pano boş</string>
+    <string name="toast_settings_from_clipboard">Ayarlar panodan alındı</string>
+    <string name="toast_url_pasted">URL yapıştırıldı</string>
+    <string name="toast_token_pasted">Token yapıştırıldı — Kaydet’e bas</string>
+    <string name="toast_config_incomplete">Gelen ayar eksik</string>
+    <string name="toast_from_web_ok">Siteden alındı</string>
+    <string name="dialog_from_web_title">Siteden al</string>
+    <string name="dialog_from_web_message">Telefon ve araba aynı WiFi’de olsun. Telefonda tarayıcıya şu adresi yaz, token’ı yapıştırıp gönder.</string>
+    <string name="dialog_preparing_link">Bağlantı hazırlanıyor…</string>
+    <string name="btn_cancel">İptal</string>
+
+    <!-- Status block -->
+    <string name="status_service">Servis: %1$s</string>
+    <string name="status_on">AÇIK</string>
+    <string name="status_off">KAPALI</string>
+    <string name="status_mode">Mod: %1$s</string>
+    <string name="status_mode_demo">DEMO</string>
+    <string name="status_mode_car">araç</string>
+    <string name="status_cpm">Araç CPM: %1$s</string>
+    <string name="status_ready">bağlı</string>
+    <string name="status_missing">yok</string>
+    <string name="status_net">Ağ: %1$s  (any %2$s, WiFi %3$s)</string>
+    <string name="status_yes">var</string>
+    <string name="status_no">yok</string>
+    <string name="status_sim_hint">Sim: WiFi şart değil — hücresel/ethernet OK</string>
+    <string name="status_config">Yapılandırma: %1$s</string>
+    <string name="status_config_ok">tamam</string>
+    <string name="status_config_missing">URL/token eksik</string>
+    <string name="status_last_send">Son gönderim: %1$s</string>
+    <string name="status_counts">  (ok %1$d / fail %2$d)</string>
+    <string name="status_line">Durum: %1$s</string>
+
+    <!-- Service messages -->
+    <string name="msg_service_started">Servis açıldı</string>
+    <string name="msg_service_stopped">Servis kapalı</string>
+    <string name="msg_tick">Tick…</string>
+    <string name="msg_not_configured">URL ve token kaydedilmedi</string>
+    <string name="msg_no_internet_sim">İnternet yok — gönderilmedi (%1$s)</string>
+    <string name="msg_no_wifi">WiFi yok — gönderilmedi (aktif: %1$s)</string>
+    <string name="msg_no_internet">İnternet yok — gönderilmedi</string>
+    <string name="msg_sim_need_demo">Sim’de araç verisi yok — Demo modu aç</string>
+    <string name="msg_sending">HA’ya gönderiliyor…</string>
+    <string name="msg_sent_ok">Gönderildi: group.mg4 (ok %1$d)</string>
+    <string name="msg_sent_partial">Kısmi/hata: ok=%1$d fail=%2$d%3$s</string>
+    <string name="msg_error">Hata: %1$s</string>
+    <string name="msg_client_missing">istemci veya veri yok</string>
+    <string name="msg_group_fail">grup: %1$s</string>
+    <string name="msg_unknown_error">bilinmeyen hata</string>
+    <string name="msg_no_wifi_ip">WiFi IP yok — araba ve telefon aynı ağa bağlı olsun</string>
+    <string name="msg_web_timeout">Süre doldu. Telefonda sayfayı açıp Gönder’e bas.</string>
+    <string name="msg_waiting_phone">Telefondan aç: %1$s</string>
+    <string name="msg_web_need_fields">URL ve token gerekli.</string>
+    <string name="msg_web_saved">Kaydedildi. Arabaya bak — ayarlar alındı.</string>
+    <string name="msg_generic_error">hata</string>
+    <string name="err_ha_url_empty">Home Assistant URL boş</string>
+    <string name="err_ha_token_empty">Token boş</string>
+
+    <!-- Network describe -->
+    <string name="net_none">yok</string>
+    <string name="net_no_internet">internet yok</string>
+    <string name="net_wifi">WiFi</string>
+    <string name="net_cellular">hücresel</string>
+    <string name="net_ethernet">ethernet</string>
+    <string name="net_vpn">VPN</string>
+    <string name="net_other">diğer</string>
+
+    <!-- Preview / vehicle -->
+    <string name="preview_demo_header">DEMO MODU — sanal veri\n\n</string>
+    <string name="preview_soc">SOC: %1$s\n</string>
+    <string name="preview_range">Menzil: %1$s\n</string>
+    <string name="preview_odometer">Odometre: %1$s\n</string>
+    <string name="preview_exterior">Dış sıcaklık: %1$s\n</string>
+    <string name="preview_charge">Şarj: %1$s  (%2$s)\n</string>
+    <string name="preview_yes">evet</string>
+    <string name="preview_no">hayır</string>
+    <string name="preview_power">Şarj gücü: %1$s\n</string>
+    <string name="preview_ac">AC: %1$s / %2$s\n</string>
+    <string name="preview_batt">Batarya: %1$s / %2$s\n</string>
+    <string name="preview_last_update">Son güncelleme: %1$s\n</string>
+    <string name="preview_tire_fl">Lastik FL: %1$s\n</string>
+    <string name="preview_tire_fr">Lastik FR: %1$s\n</string>
+    <string name="preview_tire_rl">Lastik RL: %1$s\n</string>
+    <string name="preview_tire_rr">Lastik RR: %1$s\n</string>
+    <string name="preview_location">Konum: %1$s</string>
+    <string name="preview_unknown">?</string>
+    <string name="unit_percent">%</string>
+    <string name="unit_km"> km</string>
+    <string name="unit_celsius"> °C</string>
+    <string name="unit_kw"> kW</string>
+    <string name="unit_v"> V</string>
+    <string name="unit_a"> A</string>
+    <string name="unit_bar">%.2f bar</string>
+    <string name="charge_unplugged">prizde değil</string>
+    <string name="charge_ac">AC şarj</string>
+    <string name="charge_connecting">bağlanıyor</string>
+    <string name="charge_plugged">prizde, şarj yok</string>
+    <string name="charge_stopped">durdu</string>
+    <string name="charge_dc">DC şarj</string>
+    <string name="charge_code">kod %1$d</string>
+
+    <!-- HA entity friendly names (sent to Home Assistant) -->
+    <string name="ha_name_battery">Batarya</string>
+    <string name="ha_name_range">Menzil</string>
+    <string name="ha_name_mileage">Kilometre</string>
+    <string name="ha_name_exterior">Dış sıcaklık</string>
+    <string name="ha_name_tire_fl">Lastik FL</string>
+    <string name="ha_name_tire_fr">Lastik FR</string>
+    <string name="ha_name_tire_rl">Lastik RL</string>
+    <string name="ha_name_tire_rr">Lastik RR</string>
+    <string name="ha_name_charging_status">Şarj durumu</string>
+    <string name="ha_name_ac_voltage">AC voltaj</string>
+    <string name="ha_name_ac_current">AC akım</string>
+    <string name="ha_name_battery_voltage">Batarya voltaj</string>
+    <string name="ha_name_battery_current">Batarya akım</string>
+    <string name="ha_name_charging_power">Şarj gücü</string>
+    <string name="ha_name_charging">Şarjda</string>
+    <string name="ha_name_last_update">Son güncelleme</string>
+    <string name="ha_name_location">Konum</string>
+    <string name="ha_name_group">MG4</string>
+
+    <!-- Config web page -->
+    <string name="web_title">MG HA ayar</string>
+    <string name="web_heading">MG → Home Assistant</string>
+    <string name="web_intro">HA adresini ve long-lived token’ı buraya yapıştır. Gönder’e basınca araba kaydeder.</string>
+    <string name="web_label_url">Home Assistant URL</string>
+    <string name="web_label_token">Long-lived access token</string>
+    <string name="web_label_prefix">Önek (isteğe bağlı)</string>
+    <string name="web_btn_save">Arabaya kaydet</string>
+    <string name="web_result_ok">Tamam</string>
+    <string name="web_result_fail">Hata</string>
 </resources>

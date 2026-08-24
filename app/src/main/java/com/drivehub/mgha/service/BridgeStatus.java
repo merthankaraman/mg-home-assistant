@@ -5,7 +5,7 @@ public final class BridgeStatus {
     public static volatile boolean wifiOk;
     public static volatile boolean carOk;
     public static volatile boolean lastSendOk;
-    public static volatile String lastMessage = "Servis kapalı";
+    public static volatile String lastMessage = "";
     public static volatile String lastPreview = "";
     public static volatile long lastSendAtMs;
     public static volatile int lastOkCount;

@@ -1,6 +1,6 @@
 # MG Home Assistant
 
-Sürüm: **0.2.5**
+Sürüm: **0.1.1**
 
 MG4 infotainment’dan (veya Demo’da Sim varyantından) veriyi Home Assistant’a REST ile gönderir.
 

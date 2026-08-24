@@ -48,17 +48,27 @@ public final class WifiHelper {
 
     public static String describe(Context ctx) {
         ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (cm == null) return "yok";
+        if (cm == null) return ctx.getString(com.drivehub.mgha.R.string.net_none);
         Network net = cm.getActiveNetwork();
-        if (net == null) return "yok";
+        if (net == null) return ctx.getString(com.drivehub.mgha.R.string.net_none);
         NetworkCapabilities caps = cm.getNetworkCapabilities(net);
-        if (caps == null) return "yok";
-        if (!caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) return "internet yok";
-        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return "WiFi";
-        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) return "hücresel";
-        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) return "ethernet";
-        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) return "VPN";
-        return "diğer";
+        if (caps == null) return ctx.getString(com.drivehub.mgha.R.string.net_none);
+        if (!caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
+            return ctx.getString(com.drivehub.mgha.R.string.net_no_internet);
+        }
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+            return ctx.getString(com.drivehub.mgha.R.string.net_wifi);
+        }
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+            return ctx.getString(com.drivehub.mgha.R.string.net_cellular);
+        }
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+            return ctx.getString(com.drivehub.mgha.R.string.net_ethernet);
+        }
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+            return ctx.getString(com.drivehub.mgha.R.string.net_vpn);
+        }
+        return ctx.getString(com.drivehub.mgha.R.string.net_other);
     }
 
     private static boolean hasTransportInternet(Context ctx, int transport) {
