@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "MG4",
+        "description": "Telemetry from the car app appears as device MG4 under Settings → Devices. Use the same Home Assistant URL and long-lived token in the app."
+      }
+    },
+    "abort": {
+      "already_configured": "MG4 is already configured."
+    }
+  }
+}

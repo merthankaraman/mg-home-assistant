@@ -1,0 +1,50 @@
+# Built application files
+*.apk
+*.ap_
+*.aab
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+build/
+.gradle/
+.cursor/
+
+# Gradle
+.gradle/
+local.properties
+
+# Android Studio / IntelliJ
+*.iml
+.idea/
+.DS_Store
+.navigation/
+captures/
+.externalNativeBuild
+.cxx
+
+# Keystore / platform keys (copy from MG4_V3, do not commit)
+*.jks
+*.keystore
+*.p12
+*.pk8
+*.pem
+platform.key
+
+# OS
+Thumbs.db
+
+# Logs
+*.log
+logcat*.txt
+
+# Backup
+*.bak
+*~

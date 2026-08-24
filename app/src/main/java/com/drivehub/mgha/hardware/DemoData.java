@@ -1,0 +1,39 @@
+package com.drivehub.mgha.hardware;
+
+/**
+ * Emülatör / Sim varyantı için sahte MG4 verisi.
+ * Değerler birkaç saniyede bir hafif değişir ki HA'da güncelleme görülsün.
+ */
+public final class DemoData {
+    private DemoData() {}
+
+    public static VehicleSnapshot create() {
+        long step = System.currentTimeMillis() / 15000L;
+        int wave = (int) (step % 8);
+
+        VehicleSnapshot s = new VehicleSnapshot();
+        s.capturedAtMs = System.currentTimeMillis();
+        s.demo = true;
+        s.carConnected = true;
+        s.socPercent = 64.0f + wave * 0.8f;
+        s.rangeKm = 236 + wave * 2;
+        s.odometerKm = 18432;
+        s.exteriorTempC = 16 + (wave % 4);
+        s.tireKpaFl = 238 + wave;
+        s.tireKpaFr = 241;
+        s.tireKpaRl = 235 + wave / 2;
+        s.tireKpaRr = 237;
+        s.charging = true;
+        s.chargeStatus = 1;
+        s.acVoltageV = 230f + wave * 0.4f;
+        s.acCurrentA = 27.0f + wave * 0.3f;
+        s.batteryVoltageV = 384f + wave * 0.5f;
+        s.batteryCurrentA = -18.5f - wave * 0.2f;
+        s.chargePowerKw = (s.acVoltageV * s.acCurrentA) / 1000f;
+        // İstanbul civarı, hafif kayma
+        s.latitude = 41.0082 + wave * 0.00025;
+        s.longitude = 28.9784 + wave * 0.00018;
+        s.gpsAccuracyM = 8f;
+        return s;
+    }
+}

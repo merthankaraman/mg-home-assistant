@@ -1,0 +1,3 @@
+-keep class androidx.core.app.** { *; }
+-dontwarn androidx.core.app.**
+-keep class com.drivehub.mgha.** { *; }

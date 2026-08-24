@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MG Home Assistant</string>
+    <string name="channel_bridge">Home Assistant köprüsü</string>
+    <string name="notify_running">Köprü çalışıyor</string>
+    <string name="notify_waiting_wifi">WiFi bekleniyor</string>
+    <string name="notify_sent">Home Assistant güncellendi</string>
+    <string name="notify_error">Gönderilemedi</string>
+</resources>

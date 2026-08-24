@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "MG4",
+        "description": "Araç uygulamasından gelen veriler Ayarlar → Cihazlar altında MG4 olarak görünür. Uygulamada aynı Home Assistant adresi ve long-lived token kullanılır."
+      }
+    },
+    "abort": {
+      "already_configured": "MG4 zaten ekli."
+    }
+  }
+}
