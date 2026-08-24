@@ -55,10 +55,10 @@ public class VehicleSnapshot {
                 fmt(ctx, batteryCurrentA, R.string.unit_a)));
         sb.append(ctx.getString(R.string.preview_last_update, fmtTime(ctx, capturedAtMs)));
         sb.append('\n');
-        sb.append(ctx.getString(R.string.preview_tire_fl, fmtBar(ctx, tireKpaFl)));
-        sb.append(ctx.getString(R.string.preview_tire_fr, fmtBar(ctx, tireKpaFr)));
-        sb.append(ctx.getString(R.string.preview_tire_rl, fmtBar(ctx, tireKpaRl)));
-        sb.append(ctx.getString(R.string.preview_tire_rr, fmtBar(ctx, tireKpaRr)));
+        sb.append(ctx.getString(R.string.preview_tire_fl, fmtKpa(ctx, tireKpaFl)));
+        sb.append(ctx.getString(R.string.preview_tire_fr, fmtKpa(ctx, tireKpaFr)));
+        sb.append(ctx.getString(R.string.preview_tire_rl, fmtKpa(ctx, tireKpaRl)));
+        sb.append(ctx.getString(R.string.preview_tire_rr, fmtKpa(ctx, tireKpaRr)));
         sb.append('\n');
         sb.append(ctx.getString(R.string.preview_location, fmtGps(ctx)));
         return sb.toString();
@@ -92,9 +92,9 @@ public class VehicleSnapshot {
                 : (v + ctx.getString(unitRes));
     }
 
-    private static String fmtBar(Context ctx, int kpa) {
+    private static String fmtKpa(Context ctx, int kpa) {
         if (kpa < 0) return ctx.getString(R.string.preview_unknown);
-        return String.format(java.util.Locale.US, ctx.getString(R.string.unit_bar), kpa / 100f);
+        return ctx.getString(R.string.unit_kpa, kpa);
     }
 
     private String fmtGps(Context ctx) {

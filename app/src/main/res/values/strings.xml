@@ -8,7 +8,7 @@
     <string name="notify_error">Gönderilemedi</string>
 
     <!-- Main screen -->
-    <string name="title_main">MG4 → Home Assistant</string>
+    <string name="title_main">MG4 Home Assistant</string>
     <string name="version_placeholder">v—</string>
     <string name="version_format">v%1$s  (%2$s%3$s)</string>
     <string name="version_debug_suffix"> debug</string>
@@ -18,15 +18,15 @@
     <string name="label_ha_token">Long-lived access token</string>
     <string name="hint_ha_token">eyJhbGciOi…</string>
     <string name="btn_paste">Yapıştır</string>
-    <string name="hint_token_transfer">Token’ı arabada yazma: Siteden al → telefonda tarayıcıya yapıştır (APK gerekmez).</string>
-    <string name="btn_from_web">Siteden al</string>
+    <string name="hint_token_transfer">Bilgileri ekrandan doldurmak yerine düğmeye basarsan web sitesi açılır telefondan doldurabilirsin</string>
+    <string name="btn_from_web">Web sitesi ile doldur</string>
     <string name="label_prefix">Varlık öneki</string>
     <string name="hint_prefix">mg4</string>
     <string name="default_prefix">mg4</string>
     <string name="label_interval">Aralık (dakika)</string>
     <string name="hint_interval">1</string>
     <string name="default_interval">1</string>
-    <string name="check_wifi_only">Sadece WiFi varken gönder (sim’de yok sayılır)</string>
+    <string name="check_wifi_only">Sadece WiFi varken gönder</string>
     <string name="check_insecure_ssl">Kendinden imzalı SSL kabul et</string>
     <string name="check_autostart">Açılışta servisi başlat</string>
     <string name="btn_save">Kaydet</string>
@@ -144,7 +144,7 @@
     <string name="unit_kw"> kW</string>
     <string name="unit_v"> V</string>
     <string name="unit_a"> A</string>
-    <string name="unit_bar">%.2f bar</string>
+    <string name="unit_kpa">%1$d kPa</string>
     <string name="charge_unplugged">prizde değil</string>
     <string name="charge_ac">AC şarj</string>
     <string name="charge_connecting">bağlanıyor</string>
@@ -154,14 +154,14 @@
     <string name="charge_code">kod %1$d</string>
 
     <!-- HA entity friendly names (sent to Home Assistant) -->
-    <string name="ha_name_battery">Batarya</string>
+    <string name="ha_name_battery">Şarj yüzdesi</string>
     <string name="ha_name_range">Menzil</string>
     <string name="ha_name_mileage">Kilometre</string>
     <string name="ha_name_exterior">Dış sıcaklık</string>
-    <string name="ha_name_tire_fl">Lastik FL</string>
-    <string name="ha_name_tire_fr">Lastik FR</string>
-    <string name="ha_name_tire_rl">Lastik RL</string>
-    <string name="ha_name_tire_rr">Lastik RR</string>
+    <string name="ha_name_tire_fl">Lastik sol ön</string>
+    <string name="ha_name_tire_fr">Lastik sağ ön</string>
+    <string name="ha_name_tire_rl">Lastik sol arka</string>
+    <string name="ha_name_tire_rr">Lastik sağ arka</string>
     <string name="ha_name_charging_status">Şarj durumu</string>
     <string name="ha_name_ac_voltage">AC voltaj</string>
     <string name="ha_name_ac_current">AC akım</string>

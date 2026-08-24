@@ -33,22 +33,36 @@ public final class HaPublisher {
         String p = sanitize(prefix);
         JSONArray members = new JSONArray();
 
+        postStr(client, out, members, "sensor." + p + "_last_update", isoUtc(snap.capturedAtMs),
+                attrs(ctx.getString(R.string.ha_name_last_update), null, "timestamp", null, "mdi:clock-outline"));
+        if (!Double.isNaN(snap.latitude) && !Double.isNaN(snap.longitude)) {
+            JSONObject a = new JSONObject();
+            try {
+                a.put("friendly_name", ctx.getString(R.string.ha_name_location));
+                a.put("source_type", "gps");
+                a.put("latitude", snap.latitude);
+                a.put("longitude", snap.longitude);
+                if (!Float.isNaN(snap.gpsAccuracyM)) a.put("gps_accuracy", snap.gpsAccuracyM);
+                if (snap.demo) a.put("demo", true);
+            } catch (Exception ignored) {}
+            post(client, out, members, "device_tracker." + p, "not_home", a);
+        }
+        postInt(client, out, members, "sensor." + p + "_mileage", snap.odometerKm,
+                attrs(ctx.getString(R.string.ha_name_mileage), "km", "distance", "total_increasing", "mdi:counter"));
         postNum(client, out, members, "sensor." + p + "_battery", snap.socPercent,
                 attrs(ctx.getString(R.string.ha_name_battery), "%", "battery", "measurement", "mdi:battery"));
         postInt(client, out, members, "sensor." + p + "_range", snap.rangeKm,
                 attrs(ctx.getString(R.string.ha_name_range), "km", "distance", "measurement", "mdi:map-marker-distance"));
-        postInt(client, out, members, "sensor." + p + "_mileage", snap.odometerKm,
-                attrs(ctx.getString(R.string.ha_name_mileage), "km", "distance", "total_increasing", "mdi:counter"));
         postInt(client, out, members, "sensor." + p + "_exterior_temperature", snap.exteriorTempC,
                 attrs(ctx.getString(R.string.ha_name_exterior), "°C", "temperature", "measurement", "mdi:thermometer"));
-        postBar(client, out, members, "sensor." + p + "_tire_pressure_fl", snap.tireKpaFl,
-                attrs(ctx.getString(R.string.ha_name_tire_fl), "bar", "pressure", "measurement", "mdi:car-tire-alert"));
-        postBar(client, out, members, "sensor." + p + "_tire_pressure_fr", snap.tireKpaFr,
-                attrs(ctx.getString(R.string.ha_name_tire_fr), "bar", "pressure", "measurement", "mdi:car-tire-alert"));
-        postBar(client, out, members, "sensor." + p + "_tire_pressure_rl", snap.tireKpaRl,
-                attrs(ctx.getString(R.string.ha_name_tire_rl), "bar", "pressure", "measurement", "mdi:car-tire-alert"));
-        postBar(client, out, members, "sensor." + p + "_tire_pressure_rr", snap.tireKpaRr,
-                attrs(ctx.getString(R.string.ha_name_tire_rr), "bar", "pressure", "measurement", "mdi:car-tire-alert"));
+        postInt(client, out, members, "sensor." + p + "_tire_pressure_fl", snap.tireKpaFl,
+                attrs(ctx.getString(R.string.ha_name_tire_fl), "kPa", "pressure", "measurement", "mdi:car-tire-alert"));
+        postInt(client, out, members, "sensor." + p + "_tire_pressure_fr", snap.tireKpaFr,
+                attrs(ctx.getString(R.string.ha_name_tire_fr), "kPa", "pressure", "measurement", "mdi:car-tire-alert"));
+        postInt(client, out, members, "sensor." + p + "_tire_pressure_rl", snap.tireKpaRl,
+                attrs(ctx.getString(R.string.ha_name_tire_rl), "kPa", "pressure", "measurement", "mdi:car-tire-alert"));
+        postInt(client, out, members, "sensor." + p + "_tire_pressure_rr", snap.tireKpaRr,
+                attrs(ctx.getString(R.string.ha_name_tire_rr), "kPa", "pressure", "measurement", "mdi:car-tire-alert"));
         postStr(client, out, members, "sensor." + p + "_charging_status", chargeState(snap.chargeStatus),
                 attrs(ctx.getString(R.string.ha_name_charging_status), null, null, null, "mdi:ev-station"));
         postNum(client, out, members, "sensor." + p + "_ac_voltage", snap.acVoltageV,
@@ -64,20 +78,6 @@ public final class HaPublisher {
         postStr(client, out, members, "binary_sensor." + p + "_charging",
                 snap.charging ? "on" : "off",
                 binAttrs(ctx.getString(R.string.ha_name_charging), "battery_charging", "mdi:battery-charging"));
-        postStr(client, out, members, "sensor." + p + "_last_update", isoUtc(snap.capturedAtMs),
-                attrs(ctx.getString(R.string.ha_name_last_update), null, "timestamp", null, "mdi:clock-outline"));
-        if (!Double.isNaN(snap.latitude) && !Double.isNaN(snap.longitude)) {
-            JSONObject a = new JSONObject();
-            try {
-                a.put("friendly_name", ctx.getString(R.string.ha_name_location));
-                a.put("source_type", "gps");
-                a.put("latitude", snap.latitude);
-                a.put("longitude", snap.longitude);
-                if (!Float.isNaN(snap.gpsAccuracyM)) a.put("gps_accuracy", snap.gpsAccuracyM);
-                if (snap.demo) a.put("demo", true);
-            } catch (Exception ignored) {}
-            post(client, out, members, "device_tracker." + p, "not_home", a);
-        }
 
         if (members.length() > 0) {
             ensureGroup(ctx, client, out, p, members);
@@ -188,12 +188,6 @@ public final class HaPublisher {
                                 String id, int v, JSONObject attrs) {
         if (v < 0) return;
         post(c, out, members, id, String.valueOf(v), attrs);
-    }
-
-    private static void postBar(HomeAssistantClient c, PublishResult out, JSONArray members,
-                                String id, int kpa, JSONObject attrs) {
-        if (kpa < 0) return;
-        post(c, out, members, id, trimNum(kpa / 100f), attrs);
     }
 
     private static void postStr(HomeAssistantClient c, PublishResult out, JSONArray members,
