@@ -110,15 +110,15 @@ public final class VehicleReader {
         s.batteryCurrentA = firstFloat(bmsFloat(PROP_CHR_AMP_ACT), getFloat(PROP_CHR_AMP_ACT));
         s.acVoltageV = firstFloat(bmsFloat(PROP_AC_VOLT), getFloat(PROP_AC_VOLT));
         s.acCurrentA = firstFloat(bmsFloat(PROP_AC_AMP), getFloat(PROP_AC_AMP));
+        if (!Float.isNaN(s.acVoltageV) && !Float.isNaN(s.acCurrentA)) {
+            s.acChargingPowerKw = (s.acVoltageV * s.acCurrentA) / 1000f;
+        }
+        if (!Float.isNaN(s.batteryVoltageV) && !Float.isNaN(s.batteryCurrentA)) {
+            s.dcChargingPowerKw = Math.abs(s.batteryVoltageV * s.batteryCurrentA) / 1000f;
+        }
         float speedKmh = getFloat(PROP_SPEED);
         s.charging = isCharging(s.chargeStatus, s.acCurrentA, s.batteryCurrentA,
                 s.batteryVoltageV, speedKmh);
-
-        if (s.charging && !Float.isNaN(s.acVoltageV) && !Float.isNaN(s.acCurrentA) && s.acCurrentA > 0.5f) {
-            s.chargePowerKw = (s.acVoltageV * s.acCurrentA) / 1000f;
-        } else if (s.charging && !Float.isNaN(s.batteryVoltageV) && !Float.isNaN(s.batteryCurrentA)) {
-            s.chargePowerKw = Math.abs(s.batteryVoltageV * s.batteryCurrentA) / 1000f;
-        }
         fillGps(s);
         return s;
     }

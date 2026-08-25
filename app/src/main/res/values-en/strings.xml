@@ -128,9 +128,10 @@
     <string name="preview_charge">Charging: %1$s\n</string>
     <string name="preview_yes">yes</string>
     <string name="preview_no">no</string>
-    <string name="preview_power">Charge power: %1$s\n</string>
     <string name="preview_ac">AC: %1$s / %2$s\n</string>
+    <string name="preview_ac_power">AC charge power: %1$s\n</string>
     <string name="preview_batt">Battery: %1$s / %2$s\n</string>
+    <string name="preview_dc_power">Battery charge power: %1$s\n</string>
     <string name="preview_last_update">Last update: %1$s\n</string>
     <string name="preview_tire_fl">Tire front left: %1$s\n</string>
     <string name="preview_tire_fr">Tire front right: %1$s\n</string>
@@ -168,9 +169,10 @@
     <string name="ha_name_charging_status">Charging status</string>
     <string name="ha_name_ac_voltage">AC voltage</string>
     <string name="ha_name_ac_current">AC current</string>
+    <string name="ha_name_ac_charging_power">AC charge power</string>
     <string name="ha_name_battery_voltage">Battery voltage</string>
     <string name="ha_name_battery_current">Battery current</string>
-    <string name="ha_name_charging_power">Charge power</string>
+    <string name="ha_name_battery_charging_power">Battery charge power</string>
     <string name="ha_name_charging">Charging</string>
     <string name="ha_name_last_update">Last update</string>
     <string name="ha_name_location">Location</string>

@@ -72,12 +72,14 @@ public final class HaPublisher {
                 attrs(ctx.getString(R.string.ha_name_battery_voltage), "V", "voltage", "measurement", "mdi:car-battery"));
         postNum(client, out, members, "sensor." + p + "_battery_current", snap.batteryCurrentA,
                 attrs(ctx.getString(R.string.ha_name_battery_current), "A", "current", "measurement", "mdi:current-dc"));
-        postNum(client, out, members, "sensor." + p + "_charging_power", snap.chargePowerKw,
-                attrs(ctx.getString(R.string.ha_name_charging_power), "kW", "power", "measurement", "mdi:flash"));
+        postNum(client, out, members, "sensor." + p + "_battery_charging_power", snap.dcChargingPowerKw,
+                attrs(ctx.getString(R.string.ha_name_battery_charging_power), "kW", "power", "measurement", "mdi:ev-station"));
         postNum(client, out, members, "sensor." + p + "_ac_voltage", snap.acVoltageV,
                 attrs(ctx.getString(R.string.ha_name_ac_voltage), "V", "voltage", "measurement", "mdi:flash"));
         postNum(client, out, members, "sensor." + p + "_ac_current", snap.acCurrentA,
                 attrs(ctx.getString(R.string.ha_name_ac_current), "A", "current", "measurement", "mdi:current-ac"));
+        postNum(client, out, members, "sensor." + p + "_ac_charging_power", snap.acChargingPowerKw,
+                attrs(ctx.getString(R.string.ha_name_ac_charging_power), "kW", "power", "measurement", "mdi:flash"));
         if (members.length() > 0) {
             ensureGroup(ctx, client, out, p, members);
         }
@@ -156,9 +158,10 @@ public final class HaPublisher {
                 "sensor." + p + "_charging_status",
                 "sensor." + p + "_ac_voltage",
                 "sensor." + p + "_ac_current",
+                "sensor." + p + "_ac_charging_power",
                 "sensor." + p + "_battery_voltage",
                 "sensor." + p + "_battery_current",
-                "sensor." + p + "_charging_power",
+                "sensor." + p + "_battery_charging_power",
                 "sensor." + p + "_last_update"
         };
         for (String id : sensors) {

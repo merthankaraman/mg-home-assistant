@@ -128,9 +128,10 @@
     <string name="preview_charge">Şarj: %1$s\n</string>
     <string name="preview_yes">evet</string>
     <string name="preview_no">hayır</string>
-    <string name="preview_power">Şarj gücü: %1$s\n</string>
     <string name="preview_ac">AC: %1$s / %2$s\n</string>
+    <string name="preview_ac_power">AC şarj gücü: %1$s\n</string>
     <string name="preview_batt">Batarya: %1$s / %2$s\n</string>
+    <string name="preview_dc_power">Batarya şarj gücü: %1$s\n</string>
     <string name="preview_last_update">Son güncelleme: %1$s\n</string>
     <string name="preview_tire_fl">Lastik Sol ön: %1$s\n</string>
     <string name="preview_tire_fr">Lastik Sağ ön: %1$s\n</string>
@@ -168,9 +169,10 @@
     <string name="ha_name_charging_status">Şarj durumu</string>
     <string name="ha_name_ac_voltage">AC voltaj</string>
     <string name="ha_name_ac_current">AC akım</string>
+    <string name="ha_name_ac_charging_power">AC şarj gücü</string>
     <string name="ha_name_battery_voltage">Batarya voltaj</string>
     <string name="ha_name_battery_current">Batarya akım</string>
-    <string name="ha_name_charging_power">Şarj gücü</string>
+    <string name="ha_name_battery_charging_power">Batarya şarj gücü</string>
     <string name="ha_name_charging">Şarjda</string>
     <string name="ha_name_last_update">Son güncelleme</string>
     <string name="ha_name_location">Konum</string>

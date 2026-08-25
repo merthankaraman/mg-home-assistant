@@ -30,11 +30,12 @@ public class VehicleSnapshot {
 
     public boolean charging;
     public int chargeStatus = -1;
-    public float chargePowerKw = Float.NaN;
     public float acVoltageV = Float.NaN;
     public float acCurrentA = Float.NaN;
+    public float acChargingPowerKw = Float.NaN;
     public float batteryVoltageV = Float.NaN;
     public float batteryCurrentA = Float.NaN;
+    public float dcChargingPowerKw = Float.NaN;
 
     public String formatForScreen(Context ctx) {
         StringBuilder sb = new StringBuilder();
@@ -48,13 +49,14 @@ public class VehicleSnapshot {
         sb.append(ctx.getString(R.string.preview_exterior, fmtInt(ctx, exteriorTempC, R.string.fmt_celsius)));
         sb.append('\n');
         sb.append(ctx.getString(R.string.preview_charge, chargeLabel(ctx, chargeStatus)));
-        sb.append(ctx.getString(R.string.preview_power, fmt(ctx, chargePowerKw, R.string.fmt_kw)));
         sb.append(ctx.getString(R.string.preview_ac,
                 fmt(ctx, acVoltageV, R.string.fmt_v),
                 fmt(ctx, acCurrentA, R.string.fmt_a)));
+        sb.append(ctx.getString(R.string.preview_ac_power, fmt(ctx, acChargingPowerKw, R.string.fmt_kw)));
         sb.append(ctx.getString(R.string.preview_batt,
                 fmt(ctx, batteryVoltageV, R.string.fmt_v),
                 fmt(ctx, batteryCurrentA, R.string.fmt_a)));
+        sb.append(ctx.getString(R.string.preview_dc_power, fmt(ctx, dcChargingPowerKw, R.string.fmt_kw)));
         sb.append('\n');
         sb.append(ctx.getString(R.string.preview_tire_fl, fmtInt(ctx, tireKpaFl, R.string.fmt_kpa)));
         sb.append(ctx.getString(R.string.preview_tire_fr, fmtInt(ctx, tireKpaFr, R.string.fmt_kpa)));

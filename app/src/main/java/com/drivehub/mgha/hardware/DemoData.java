@@ -29,7 +29,8 @@ public final class DemoData {
         s.acCurrentA = 27.0f + wave * 0.3f;
         s.batteryVoltageV = 384f + wave * 0.5f;
         s.batteryCurrentA = -18.5f - wave * 0.2f;
-        s.chargePowerKw = (s.acVoltageV * s.acCurrentA) / 1000f;
+        s.acChargingPowerKw = (s.acVoltageV * s.acCurrentA) / 1000f;
+        s.dcChargingPowerKw = (s.batteryVoltageV * s.batteryCurrentA) / 1000f;
         // İstanbul civarı, hafif kayma
         s.latitude = 41.0082 + wave * 0.00025;
         s.longitude = 28.9784 + wave * 0.00018;
