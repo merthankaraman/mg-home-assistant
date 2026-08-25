@@ -10,6 +10,7 @@ public final class DemoData {
     public static VehicleSnapshot create() {
         long step = System.currentTimeMillis() / 15000L;
         int wave = (int) (step % 8);
+        boolean dc = (step % 2) == 0;
 
         VehicleSnapshot s = new VehicleSnapshot();
         s.capturedAtMs = System.currentTimeMillis();
@@ -24,13 +25,21 @@ public final class DemoData {
         s.tireKpaRl = 235 + wave / 2;
         s.tireKpaRr = 237;
         s.charging = true;
-        s.chargeStatus = 1;
-        s.acVoltageV = 230f + wave * 0.4f;
-        s.acCurrentA = 27.0f + wave * 0.3f;
         s.batteryVoltageV = 384f + wave * 0.5f;
-        s.batteryCurrentA = -18.5f - wave * 0.2f;
-        s.acChargingPowerKw = (s.acVoltageV * s.acCurrentA) / 1000f;
-        s.dcChargingPowerKw = (s.batteryVoltageV * s.batteryCurrentA) / 1000f;
+        if (dc) {
+            s.chargeStatus = 10;
+            s.batteryCurrentA = -115f - wave * 0.8f;
+            s.stationDcCurrentA = 125f + wave;
+            s.stationDcPowerKw = (s.batteryVoltageV * s.stationDcCurrentA) / 1000f;
+            s.dcChargingPowerKw = Math.abs(s.batteryVoltageV * s.batteryCurrentA) / 1000f;
+        } else {
+            s.chargeStatus = 1;
+            s.acVoltageV = 230f + wave * 0.4f;
+            s.acCurrentA = 27.0f + wave * 0.3f;
+            s.batteryCurrentA = -18.5f - wave * 0.2f;
+            s.acChargingPowerKw = (s.acVoltageV * s.acCurrentA) / 1000f;
+            s.dcChargingPowerKw = Math.abs(s.batteryVoltageV * s.batteryCurrentA) / 1000f;
+        }
         // İstanbul civarı, hafif kayma
         s.latitude = 41.0082 + wave * 0.00025;
         s.longitude = 28.9784 + wave * 0.00018;

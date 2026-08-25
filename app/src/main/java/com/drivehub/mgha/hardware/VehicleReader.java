@@ -32,6 +32,7 @@ public final class VehicleReader {
     private static final int PROP_RANGE = 0x2140F41C;
     private static final int PROP_BATT_VOLT = 0x2160F406;
     private static final int PROP_CHR_AMP_ACT = 0x2160F407;
+    private static final int PROP_CHR_AMP_EXP = 0x2160F40A;
     private static final int PROP_AC_AMP = 0x2160F43C;
     private static final int PROP_AC_VOLT = 0x2160F43D;
     private static final int PROP_CHG_STATUS = 0x2140F409;
@@ -108,6 +109,7 @@ public final class VehicleReader {
         s.chargeStatus = firstInt(getInt(PROP_CHG_STATUS), bmsInt(PROP_CHG_STATUS));
         s.batteryVoltageV = firstFloat(bmsFloat(PROP_BATT_VOLT), getFloat(PROP_BATT_VOLT));
         s.batteryCurrentA = firstFloat(bmsFloat(PROP_CHR_AMP_ACT), getFloat(PROP_CHR_AMP_ACT));
+        s.stationDcCurrentA = firstFloat(bmsFloat(PROP_CHR_AMP_EXP), getFloat(PROP_CHR_AMP_EXP));
         s.acVoltageV = firstFloat(bmsFloat(PROP_AC_VOLT), getFloat(PROP_AC_VOLT));
         s.acCurrentA = firstFloat(bmsFloat(PROP_AC_AMP), getFloat(PROP_AC_AMP));
         if (!Float.isNaN(s.acVoltageV) && !Float.isNaN(s.acCurrentA)) {
@@ -115,6 +117,13 @@ public final class VehicleReader {
         }
         if (!Float.isNaN(s.batteryVoltageV) && !Float.isNaN(s.batteryCurrentA)) {
             s.dcChargingPowerKw = Math.abs(s.batteryVoltageV * s.batteryCurrentA) / 1000f;
+        }
+        if (!Float.isNaN(s.batteryVoltageV) && !Float.isNaN(s.stationDcCurrentA)) {
+            float stationKw = (s.batteryVoltageV * s.stationDcCurrentA) / 1000f;
+            // Dort ile aynı: absürd istasyon teklifi yok say
+            if (Math.abs(stationKw) <= 300f) {
+                s.stationDcPowerKw = stationKw;
+            }
         }
         float speedKmh = getFloat(PROP_SPEED);
         s.charging = isCharging(s.chargeStatus, s.acCurrentA, s.batteryCurrentA,

@@ -36,6 +36,10 @@ public class VehicleSnapshot {
     public float batteryVoltageV = Float.NaN;
     public float batteryCurrentA = Float.NaN;
     public float dcChargingPowerKw = Float.NaN;
+    /** DC istasyon beklenen akım (PROP_CHR_AMP_EXP). */
+    public float stationDcCurrentA = Float.NaN;
+    /** DC istasyon teklif gücü: batarya V × beklenen A. */
+    public float stationDcPowerKw = Float.NaN;
 
     public String formatForScreen(Context ctx) {
         StringBuilder sb = new StringBuilder();
@@ -57,6 +61,12 @@ public class VehicleSnapshot {
                 fmt(ctx, batteryVoltageV, R.string.fmt_v),
                 fmt(ctx, batteryCurrentA, R.string.fmt_a)));
         sb.append(ctx.getString(R.string.preview_dc_power, fmt(ctx, dcChargingPowerKw, R.string.fmt_kw)));
+        if (chargeStatus == 10) {
+            sb.append(ctx.getString(R.string.preview_station_current,
+                    fmt(ctx, stationDcCurrentA, R.string.fmt_a)));
+            sb.append(ctx.getString(R.string.preview_station_power,
+                    fmt(ctx, stationDcPowerKw, R.string.fmt_kw)));
+        }
         sb.append('\n');
         sb.append(ctx.getString(R.string.preview_tire_fl, fmtInt(ctx, tireKpaFl, R.string.fmt_kpa)));
         sb.append(ctx.getString(R.string.preview_tire_fr, fmtInt(ctx, tireKpaFr, R.string.fmt_kpa)));

@@ -74,6 +74,12 @@ public final class HaPublisher {
                 attrs(ctx.getString(R.string.ha_name_battery_current), "A", "current", "measurement", "mdi:current-dc"));
         postNum(client, out, members, "sensor." + p + "_battery_charging_power", snap.dcChargingPowerKw,
                 attrs(ctx.getString(R.string.ha_name_battery_charging_power), "kW", "power", "measurement", "mdi:ev-station"));
+        if (snap.chargeStatus == 10) {
+            postNum(client, out, members, "sensor." + p + "_station_dc_current", snap.stationDcCurrentA,
+                    attrs(ctx.getString(R.string.ha_name_station_dc_current), "A", "current", "measurement", "mdi:current-dc"));
+            postNum(client, out, members, "sensor." + p + "_station_dc_power", snap.stationDcPowerKw,
+                    attrs(ctx.getString(R.string.ha_name_station_dc_power), "kW", "power", "measurement", "mdi:ev-station"));
+        }
         postNum(client, out, members, "sensor." + p + "_ac_voltage", snap.acVoltageV,
                 attrs(ctx.getString(R.string.ha_name_ac_voltage), "V", "voltage", "measurement", "mdi:flash"));
         postNum(client, out, members, "sensor." + p + "_ac_current", snap.acCurrentA,
@@ -162,6 +168,8 @@ public final class HaPublisher {
                 "sensor." + p + "_battery_voltage",
                 "sensor." + p + "_battery_current",
                 "sensor." + p + "_battery_charging_power",
+                "sensor." + p + "_station_dc_current",
+                "sensor." + p + "_station_dc_power",
                 "sensor." + p + "_last_update"
         };
         for (String id : sensors) {

@@ -55,6 +55,7 @@ Build Variant: **carDebug**, `platform.p12` ile imzala (DriveHub Dort ile aynı)
 | Şarj durumu | `unplugged` / `AC` / `DC` / … |
 | AC voltaj / akım / şarj gücü | V / A / kW |
 | Batarya voltaj / akım / şarj gücü | V / A / kW |
+| İstasyon DC akım / güç (yalnız DC şarj) | A / kW (beklenen) |
 | Batarya voltaj / akım | V / A |
 | Şarj gücü | kW (AC veya batarya V×A) |
 | Şarjda | evet/hayır |
