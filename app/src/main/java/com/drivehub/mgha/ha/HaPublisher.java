@@ -63,22 +63,21 @@ public final class HaPublisher {
                 attrs(ctx.getString(R.string.ha_name_tire_rl), "kPa", "pressure", "measurement", "mdi:car-tire-alert"));
         postInt(client, out, members, "sensor." + p + "_tire_pressure_rr", snap.tireKpaRr,
                 attrs(ctx.getString(R.string.ha_name_tire_rr), "kPa", "pressure", "measurement", "mdi:car-tire-alert"));
+        postStr(client, out, members, "binary_sensor." + p + "_charging",
+                snap.charging ? "on" : "off",
+                binAttrs(ctx.getString(R.string.ha_name_charging)));
         postStr(client, out, members, "sensor." + p + "_charging_status", chargeState(snap.chargeStatus),
                 attrs(ctx.getString(R.string.ha_name_charging_status), null, null, null, "mdi:ev-station"));
-        postNum(client, out, members, "sensor." + p + "_ac_voltage", snap.acVoltageV,
-                attrs(ctx.getString(R.string.ha_name_ac_voltage), "V", "voltage", "measurement", "mdi:flash"));
-        postNum(client, out, members, "sensor." + p + "_ac_current", snap.acCurrentA,
-                attrs(ctx.getString(R.string.ha_name_ac_current), "A", "current", "measurement", "mdi:current-ac"));
         postNum(client, out, members, "sensor." + p + "_battery_voltage", snap.batteryVoltageV,
                 attrs(ctx.getString(R.string.ha_name_battery_voltage), "V", "voltage", "measurement", "mdi:car-battery"));
         postNum(client, out, members, "sensor." + p + "_battery_current", snap.batteryCurrentA,
                 attrs(ctx.getString(R.string.ha_name_battery_current), "A", "current", "measurement", "mdi:current-dc"));
         postNum(client, out, members, "sensor." + p + "_charging_power", snap.chargePowerKw,
                 attrs(ctx.getString(R.string.ha_name_charging_power), "kW", "power", "measurement", "mdi:flash"));
-        postStr(client, out, members, "binary_sensor." + p + "_charging",
-                snap.charging ? "on" : "off",
-                binAttrs(ctx.getString(R.string.ha_name_charging)));
-
+        postNum(client, out, members, "sensor." + p + "_ac_voltage", snap.acVoltageV,
+                attrs(ctx.getString(R.string.ha_name_ac_voltage), "V", "voltage", "measurement", "mdi:flash"));
+        postNum(client, out, members, "sensor." + p + "_ac_current", snap.acCurrentA,
+                attrs(ctx.getString(R.string.ha_name_ac_current), "A", "current", "measurement", "mdi:current-ac"));
         if (members.length() > 0) {
             ensureGroup(ctx, client, out, p, members);
         }
