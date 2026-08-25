@@ -9,8 +9,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * REST {@code /api/states} ile varlık basar, ardından {@code group.&lt;prefix&gt;}
- * state yazar (üyeler {@code entity_id} attribute’unda). HA’ya eklenti / group YAML gerekmez.
+ * Önce {@code mg4_bridge.push} servisini dener (HA’da cihaz + kalıcılık).
+ * Servis yoksa eski REST {@code /api/states} + {@code group.&lt;prefix&gt;} yoluna düşer.
+ * Araç herhangi bir WiFi’den public HA URL + token ile yazar; LAN şart değil.
  */
 public final class HaPublisher {
 
@@ -18,6 +19,8 @@ public final class HaPublisher {
         public int ok;
         public int fail;
         public String lastError;
+        /** true = mg4_bridge.push kullanıldı */
+        public boolean viaBridge;
     }
 
     private HaPublisher() {}
@@ -31,6 +34,102 @@ public final class HaPublisher {
             return out;
         }
         String p = sanitize(prefix);
+
+        HomeAssistantClient.Result push = client.callService("mg4_bridge", "push", buildPush(snap, p, true));
+        if (push.ok) {
+            out.ok = 1;
+            out.viaBridge = true;
+            return out;
+        }
+        // 404 / unknown service → REST fallback; diğer hatalar da fallback dener
+        android.util.Log.i("MGHA_HA", "mg4_bridge.push unavailable, REST fallback: " + formatErr(ctx, push));
+        return publishRest(ctx, client, p, snap, out);
+    }
+
+    public static void markOffline(Context ctx, HomeAssistantClient client, String prefix) {
+        String p = sanitize(prefix);
+        try {
+            JSONObject data = new JSONObject();
+            data.put("prefix", p);
+            data.put("online", false);
+            HomeAssistantClient.Result r = client.callService("mg4_bridge", "push", data);
+            if (r.ok) return;
+        } catch (Exception ignored) {}
+
+        JSONObject attr = new JSONObject();
+        client.postState("binary_sensor." + p + "_charging", "off",
+                binAttrs(ctx.getString(R.string.ha_name_charging)));
+        String[] sensors = {
+                "sensor." + p + "_battery",
+                "sensor." + p + "_range",
+                "sensor." + p + "_mileage",
+                "sensor." + p + "_exterior_temperature",
+                "sensor." + p + "_tire_pressure_fl",
+                "sensor." + p + "_tire_pressure_fr",
+                "sensor." + p + "_tire_pressure_rl",
+                "sensor." + p + "_tire_pressure_rr",
+                "sensor." + p + "_charging_status",
+                "sensor." + p + "_ac_voltage",
+                "sensor." + p + "_ac_current",
+                "sensor." + p + "_ac_charging_power",
+                "sensor." + p + "_battery_voltage",
+                "sensor." + p + "_battery_current",
+                "sensor." + p + "_battery_charging_power",
+                "sensor." + p + "_station_dc_current",
+                "sensor." + p + "_station_dc_power",
+                "sensor." + p + "_last_update"
+        };
+        for (String id : sensors) {
+            client.postState(id, "unavailable", attr);
+        }
+    }
+
+    private static JSONObject buildPush(VehicleSnapshot snap, String prefix, boolean online) {
+        JSONObject o = new JSONObject();
+        try {
+            o.put("prefix", prefix);
+            o.put("online", online);
+            if (snap.demo) o.put("demo", true);
+            o.put("last_update", isoUtc(snap.capturedAtMs));
+            putNum(o, "battery", snap.socPercent);
+            putInt(o, "range", snap.rangeKm);
+            putInt(o, "mileage", snap.odometerKm);
+            putInt(o, "exterior_temperature", snap.exteriorTempC);
+            putInt(o, "tire_pressure_fl", snap.tireKpaFl);
+            putInt(o, "tire_pressure_fr", snap.tireKpaFr);
+            putInt(o, "tire_pressure_rl", snap.tireKpaRl);
+            putInt(o, "tire_pressure_rr", snap.tireKpaRr);
+            o.put("charging", snap.charging);
+            o.put("charging_status", chargeState(snap.chargeStatus));
+            putNum(o, "battery_voltage", snap.batteryVoltageV);
+            putNum(o, "battery_current", snap.batteryCurrentA);
+            putNum(o, "battery_charging_power", snap.dcChargingPowerKw);
+            if (snap.chargeStatus == 10) {
+                putNum(o, "station_dc_current", snap.stationDcCurrentA);
+                putNum(o, "station_dc_power", snap.stationDcPowerKw);
+            }
+            putNum(o, "ac_voltage", snap.acVoltageV);
+            putNum(o, "ac_current", snap.acCurrentA);
+            putNum(o, "ac_charging_power", snap.acChargingPowerKw);
+            if (!Double.isNaN(snap.latitude) && !Double.isNaN(snap.longitude)) {
+                o.put("latitude", snap.latitude);
+                o.put("longitude", snap.longitude);
+                if (!Float.isNaN(snap.gpsAccuracyM)) o.put("gps_accuracy", snap.gpsAccuracyM);
+            }
+        } catch (Exception ignored) {}
+        return o;
+    }
+
+    private static void putNum(JSONObject o, String key, float v) throws Exception {
+        if (!Float.isNaN(v)) o.put(key, v);
+    }
+
+    private static void putInt(JSONObject o, String key, int v) throws Exception {
+        if (v >= 0) o.put(key, v);
+    }
+
+    private static PublishResult publishRest(Context ctx, HomeAssistantClient client,
+                                             String p, VehicleSnapshot snap, PublishResult out) {
         JSONArray members = new JSONArray();
 
         postStr(client, out, members, "sensor." + p + "_last_update", isoUtc(snap.capturedAtMs),
@@ -145,36 +244,6 @@ public final class HaPublisher {
             sb.append(b);
         }
         return sb.length() == 0 ? ctx.getString(R.string.msg_unknown_error) : sb.toString();
-    }
-
-    public static void markOffline(Context ctx, HomeAssistantClient client, String prefix) {
-        String p = sanitize(prefix);
-        JSONObject attr = new JSONObject();
-        client.postState("binary_sensor." + p + "_charging", "off",
-                binAttrs(ctx.getString(R.string.ha_name_charging)));
-        String[] sensors = {
-                "sensor." + p + "_battery",
-                "sensor." + p + "_range",
-                "sensor." + p + "_mileage",
-                "sensor." + p + "_exterior_temperature",
-                "sensor." + p + "_tire_pressure_fl",
-                "sensor." + p + "_tire_pressure_fr",
-                "sensor." + p + "_tire_pressure_rl",
-                "sensor." + p + "_tire_pressure_rr",
-                "sensor." + p + "_charging_status",
-                "sensor." + p + "_ac_voltage",
-                "sensor." + p + "_ac_current",
-                "sensor." + p + "_ac_charging_power",
-                "sensor." + p + "_battery_voltage",
-                "sensor." + p + "_battery_current",
-                "sensor." + p + "_battery_charging_power",
-                "sensor." + p + "_station_dc_current",
-                "sensor." + p + "_station_dc_power",
-                "sensor." + p + "_last_update"
-        };
-        for (String id : sensors) {
-            client.postState(id, "unavailable", attr);
-        }
     }
 
     private static String sanitize(String prefix) {

@@ -1,63 +1,72 @@
 # MG Home Assistant
 
-Sürüm: **0.1.1**
+Sürüm: **0.2**
 
-MG4 infotainment’dan (veya Demo’da Sim varyantından) veriyi Home Assistant’a REST ile gönderir.
+MG4 infotainment’dan (veya Demo’da Sim varyantından) araç verisini Home Assistant’a gönderir.
 
-Gönderilenler: SOC, menzil, km, dış sıcaklık, lastik, şarj (AC/batarya V·A + güç), son güncelleme, konum.
+Araç **herhangi bir WiFi’den** çalışır: public HA URL + long-lived token yeter. LAN’da HA’nın arabayı poll etmesi yok.
 
-HA’ya eklenti kurulmaz. Varlıklar `group.<öneki>` altında toplanır (varsayılan `group.mg4`; Cihazlar listesinde cihaz olarak görünmez; REST bunu yapamaz).
-    10|
-## 1) Home Assistant
+## 1) Home Assistant — önerilen yol (cihaz + hatırlama)
 
-Her gönderimde uygulama token ile önce varlıkları yazar (öneki ayardan, örn. `mg4`):
+### HACS ile (en kolay)
 
-- `POST /api/states/sensor.<öneki>_*`
-- `POST /api/states/binary_sensor.<öneki>_charging`
-- `POST /api/states/device_tracker.<öneki>` (konum varsa)
+1. HACS kurulu olsun.
+2. HACS → **⋮** → **Custom repositories** → repo ekle:
+   - URL: `https://github.com/merthankaraman/mg-home-assistant`
+   - Category: **Integration**
+3. HACS → Integrations → **MG Home Assistant Bridge** → Download.
+4. HA’yı yeniden başlat.
+5. **Ayarlar → Cihazlar ve hizmetler → Entegrasyon ekle → MG Home Assistant Bridge**.
 
-Hemen ardından `POST /api/states/group.<öneki>` ile grubu oluşturur / günceller
-(üyeleri `entity_id` attribute’unda; görünür ad da önek). Böylece HA’da `group:` YAML / `group.set` gerekmez.
+- **Cihaz adı:** örn. `MG4`
+- **Varlık öneki:** uygulamadaki önek ile aynı (varsayılan `mg4`)
 
-Dashboard’da bir Entities kartına `group.<öneki>` ekle. Ayarlar → Varlıklar’da da görünür.
+### Elle kopyalama
 
-Eski custom component (`mg4_bridge`) kurduysan kaldırabilirsin; artık gerekmez.
+Repo’daki `custom_components/mg4_bridge` klasörünü HA’ya koy:
+
+```
+config/custom_components/mg4_bridge/
+```
+
+(Samba, Studio Code Server veya File editor ile.) Sonra restart + entegrasyon ekle (yukarıdaki adım 5).
+
+Ayarlar → Cihazlar’da tek **MG4** cihazı görünür; restart sonrası değerler Restore ile kalır. Uygulama `mg4_bridge.push` yazar; component yoksa REST + `group.<öneki>` fallback’e düşer.
 
 ## 2) Token’ı arabaya alma (telefona APK yok)
 
-Telefona uygulama kurmana gerek yok. Araba küçük bir web sayfası açar.
+1. Araba ve telefon **aynı WiFi**’de olsun (sadece token aktarımı için).
+2. Arabada **Siteden al** → ekranda `http://192.168.x.x:18765/` çıkar.
+3. Telefonda tarayıcıya yaz → HA URL + token → **Arabaya kaydet**.
 
-1. Araba ve telefon **aynı WiFi**’de olsun (garaj / ev).
-2. Arabada **Siteden al**’a bas — ekranda `http://192.168.x.x:18765/` gibi bir adres çıkar.
-3. Telefonda tarayıcıya o adresi yaz.
-4. HA URL + long-lived token’ı yapıştır → **Arabaya kaydet**.
-5. Araç “Siteden alındı” der.
+Token: HA kullanıcı menüsü → **Güvenlik** → **Long-lived access tokens**.
 
-Token: HA’da kullanıcı adı (sol alt) → **Güvenlik** → **Long-lived access tokens** → Create token.
+HA URL dışarıdan erişilebilir olmalı (Nabu Casa, reverse proxy, vb.) — araba ev dışı WiFi’den de gönderebilsin.
 
-## 3) Telefonda / Sim (sadece test)
+## 3) Telefonda / Sim (test)
 
-Build Variant: **simDebug**. Demo / HA test için. Token aktarımı için şart değil.
+Build Variant: **simDebug**.
 
 ## 4) Arabaya
 
-Build Variant: **carDebug**, `platform.p12` ile imzala (DriveHub Dort ile aynı).
+Build Variant: **carDebug**, `platform.p12` ile imzala.
 
-## Varlıklar (`group.<öneki>`, varsayılan `mg4`)
+## Varlıklar (prefix `mg4` örneği)
 
-| Varlık | Anlam |
+| Anahtar | Anlam |
 |---|---|
-| Batarya | SOC % |
-| Menzil | km |
-| Kilometre | odometre |
-| Dış sıcaklık | °C |
-| Lastik FL/FR/RL/RR | kPa |
-| Şarj durumu | `unplugged` / `AC` / `DC` / … |
-| AC voltaj / akım / şarj gücü | V / A / kW |
-| Batarya voltaj / akım / şarj gücü | V / A / kW |
-| İstasyon DC akım / güç (yalnız DC şarj) | A / kW (beklenen) |
-| Batarya voltaj / akım | V / A |
-| Şarj gücü | kW (AC veya batarya V×A) |
-| Şarjda | evet/hayır |
-| Son güncelleme | zaman damgası |
-| Konum | harita |
+| battery | SOC % |
+| range | menzil km |
+| mileage | odometre |
+| exterior_temperature | °C |
+| tire_pressure_* | kPa |
+| charging_status | `unplugged` / `AC` / `DC` / … |
+| charging | şarjda mı |
+| ac_* / battery_* | V / A / kW |
+| station_dc_* | yalnız DC şarjdayken |
+| last_update | zaman |
+| location | GPS |
+
+## Fallback (component yoksa)
+
+Uygulama `POST /api/states/...` ile varlık yazar ve `group.<öneki>` oluşturur. Bu yolda Cihazlar listesinde gerçek cihaz olmaz; component kurulunca cihaz + kalıcılık gelir.

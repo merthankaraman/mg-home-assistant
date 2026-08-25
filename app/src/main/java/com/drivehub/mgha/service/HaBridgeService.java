@@ -164,8 +164,10 @@ public class HaBridgeService extends Service {
             BridgeStatus.lastSendAtMs = System.currentTimeMillis();
             BridgeStatus.lastSendOk = r.fail == 0 && r.ok > 0;
             if (BridgeStatus.lastSendOk) {
-                BridgeStatus.lastMessage = getString(R.string.msg_sent_ok,
-                        HaSettings.prefix(this), r.ok);
+                String dest = r.viaBridge
+                        ? ("mg4_bridge/" + HaSettings.prefix(this))
+                        : ("group." + HaSettings.prefix(this));
+                BridgeStatus.lastMessage = getString(R.string.msg_sent_ok, dest, r.ok);
                 notifyText(getString(R.string.notify_sent));
             } else {
                 String errPart = r.lastError != null ? (" " + r.lastError) : "";

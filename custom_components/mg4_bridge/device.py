@@ -1,12 +1,12 @@
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from .const import DEVICE_ID, DOMAIN
+from .const import DOMAIN
 
 
-def mg4_device() -> DeviceInfo:
+def bridge_device(prefix: str, name: str) -> DeviceInfo:
     return DeviceInfo(
-        identifiers={(DOMAIN, DEVICE_ID)},
-        name="MG4",
+        identifiers={(DOMAIN, prefix)},
+        name=name,
         manufacturer="MG",
         model="MG4 EH32",
     )

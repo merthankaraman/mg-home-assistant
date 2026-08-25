@@ -1,0 +1,7 @@
+DOMAIN = "mg4_bridge"
+SIGNAL_UPDATE = "mg4_bridge_update"
+CONF_PREFIX = "prefix"
+CONF_NAME = "name"
+DEFAULT_PREFIX = "mg4"
+DEFAULT_NAME = "MG4"
+SERVICE_PUSH = "push"

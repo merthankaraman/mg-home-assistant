@@ -1,9 +1,0 @@
-{
-  "domain": "mg4_bridge",
-  "name": "MG4",
-  "codeowners": [],
-  "config_flow": true,
-  "documentation": "https://github.com",
-  "iot_class": "cloud_push",
-  "version": "1.0.0"
-}
