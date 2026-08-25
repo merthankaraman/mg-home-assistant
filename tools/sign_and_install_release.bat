@@ -15,8 +15,10 @@ for /f "tokens=2 delims== " %%v in ('findstr /R /C:"versionName" "%PROJECT_DIR%\
 )
 REM Cift tirnaklari temizle: "0.7.2" -> 0.7.2
 set VERSION_NAME=%VERSION_NAME:"=%
+set RELEASES_DIR=%SCRIPT_DIR%releases
 set APK_TOOLS_NAME=MG4_HA_%VERSION_NAME%.apk
-set APK_TOOLS_PATH=%SCRIPT_DIR%%APK_TOOLS_NAME%
+set APK_TOOLS_PATH=%RELEASES_DIR%\%APK_TOOLS_NAME%
+set APK_HASH_PATH=%APK_TOOLS_PATH%.sha256
 
 :: apksigner.jar yolunu otomatik bul (en yüksek build-tools sürümü)
 set APKSIGNER_JAR=
@@ -77,9 +79,19 @@ if errorlevel 1 (
 )
 echo [1/2] Imzalama tamamlandi.
 
-:: -------- tools/ klasorune kopyala --------
+:: -------- tools/releases klasorune kopyala + sha256 --------
+if not exist "%RELEASES_DIR%" mkdir "%RELEASES_DIR%"
 copy /Y "%APK_OUT%" "%APK_TOOLS_PATH%" >nul
 echo       Kopya: %APK_TOOLS_PATH%
+
+echo [1b] SHA-256 hesaplaniyor...
+powershell -NoProfile -Command ^
+  "$h = (Get-FileHash -Algorithm SHA256 -Path '%APK_TOOLS_PATH%').Hash.ToLowerInvariant(); Set-Content -NoNewline -Encoding ascii -Path '%APK_HASH_PATH%' -Value ($h + '  %APK_TOOLS_NAME%')"
+if errorlevel 1 (
+    echo [HATA] SHA-256 yazilamadi.
+    pause & exit /b 1
+)
+echo       Hash : %APK_HASH_PATH%
 
 :: -------- ADB kontrol --------
 adb devices 2>nul | findstr /v "List" | findstr "device" >nul
@@ -88,6 +100,7 @@ if errorlevel 1 (
     echo [UYARI] ADB ile bagli cihaz bulunamadi.
     echo         Araci USB ile bagla ve tekrar dene.
     echo         Imzali APK hazir: %APK_OUT%
+    echo         Release icin: publish_github_release.bat
     pause & exit /b 0
 )
 

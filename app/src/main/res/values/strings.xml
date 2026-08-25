@@ -36,6 +36,9 @@
     <string name="btn_send_now">Şimdi gönder</string>
     <string name="btn_demo">Demo modu</string>
     <string name="btn_demo_on">Demo modu açık — kapat</string>
+    <string name="check_ota_beta">Beta sürümleri de kontrol et</string>
+    <string name="btn_ota_check">Güncelleme kontrol et</string>
+    <string name="btn_ota_download">Güncellemeyi indir</string>
     <string name="label_status">Durum</string>
     <string name="label_preview">Gösterilen veri</string>
     <string name="preview_waiting">Veri bekleniyor…</string>
@@ -191,4 +194,41 @@
     <string name="web_btn_save">Arabaya kaydet</string>
     <string name="web_result_ok">Tamam</string>
     <string name="web_result_fail">Hata</string>
+
+    <!-- OTA -->
+    <string name="ota_status_idle">GitHub’dan güncelleme kontrol edilmedi</string>
+    <string name="ota_status_checking">Güncelleme kontrol ediliyor…</string>
+    <string name="ota_status_up_to_date">Güncelsiniz</string>
+    <string name="ota_status_update_available">Güncelleme var: %1$s</string>
+    <string name="ota_status_check_failed">Kontrol başarısız</string>
+    <string name="ota_status_check_failed_detail">Kontrol başarısız (%1$s)</string>
+    <string name="ota_dialog_title">OTA güncelleme</string>
+    <string name="ota_dialog_up_to_date_message">Daha yeni bir sürüm yok.</string>
+    <string name="ota_dialog_check_failed_message">Güncelleme kontrolü başarısız. İnternet / GitHub erişimini kontrol et.</string>
+    <string name="ota_dialog_mobile_warning_message">%1$s sürümü indirilecek. Wi‑Fi yoksa mobil veri kullanılabilir. Devam?</string>
+    <string name="ota_dialog_download_started_message">%1$s sürümü indiriliyor…</string>
+    <string name="ota_dialog_download_failed_message">İndirme başlatılamadı (%1$s).</string>
+    <string name="ota_dialog_open_downloads_failed_message">İndirilenler açılamadı (%1$s).</string>
+    <string name="ota_error_no_hash">Release’te APK için .sha256 yok</string>
+    <string name="ota_error_invalid_hash">SHA-256 dosyası geçersiz</string>
+    <string name="ota_error_no_release">GitHub’da sürüm bulunamadı</string>
+    <string name="ota_error_no_apk">Release’te APK yok</string>
+    <string name="ota_progress_preparing">İndirme hazırlanıyor…</string>
+    <string name="ota_progress_pending">İndirme bekleniyor…</string>
+    <string name="ota_progress_downloading">İndiriliyor… %1$d%% (%2$s / %3$s)</string>
+    <string name="ota_progress_running_unknown">İndiriliyor… %1$s alındı</string>
+    <string name="ota_progress_paused">İndirme %1$d%%\'de durakladı…</string>
+    <string name="ota_progress_complete">İndirme tamam. Doğrulanıyor…</string>
+    <string name="ota_progress_verifying">SHA-256 doğrulanıyor…</string>
+    <string name="ota_progress_verified">Doğrulama OK. APK İndirilenler klasöründe.</string>
+    <string name="ota_progress_integrity_failed">Doğrulama başarısız (%1$s).</string>
+    <string name="ota_progress_failed_reason">İndirme başarısız (%1$s).</string>
+    <string name="ota_progress_unavailable">İndirme durumu kullanılamıyor.</string>
+    <string name="ota_progress_missing">İndirme kaydı bulunamadı.</string>
+    <string name="ota_action_refresh">Yenile</string>
+    <string name="ota_action_close">Kapat</string>
+    <string name="ota_action_download">İndir</string>
+    <string name="ota_action_retry_download">Tekrar dene</string>
+    <string name="ota_action_install_update">İndirilenleri aç</string>
+    <string name="ota_toast_checking">Güncelleme kontrol ediliyor…</string>
 </resources>

@@ -44,6 +44,6 @@ Thumbs.db
 *.log
 logcat*.txt
 
-# Backup
-*.bak
-*~
+# Release artifacts (publish via bat; do not commit binaries)
+tools/releases/*
+!tools/releases/.gitkeep

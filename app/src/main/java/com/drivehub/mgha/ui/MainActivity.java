@@ -31,6 +31,7 @@ import com.drivehub.mgha.ha.HomeAssistantClient;
 import com.drivehub.mgha.hardware.VehicleReader;
 import com.drivehub.mgha.hardware.VehicleSnapshot;
 import com.drivehub.mgha.net.WifiHelper;
+import com.drivehub.mgha.ota.OtaController;
 import com.drivehub.mgha.prefs.HaSettings;
 import com.drivehub.mgha.service.BridgeStatus;
 import com.drivehub.mgha.service.HaBridgeService;
@@ -54,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView previewView;
     private Button startStopBtn;
     private Button demoBtn;
+    private OtaController otaController;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final ConfigWebServer webServer = new ConfigWebServer();
@@ -113,6 +115,13 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btn_paste_token).setOnClickListener(v -> pasteFromClipboard());
         findViewById(R.id.btn_from_web).setOnClickListener(v -> startFromWeb());
 
+        otaController = new OtaController(this);
+        otaController.setup(
+                findViewById(R.id.btn_ota_check),
+                findViewById(R.id.text_ota_status),
+                findViewById(R.id.check_ota_beta));
+        otaController.checkOnStartup();
+
         VehicleReader.init(this);
         refreshDemoButton();
         refreshStatus();
@@ -143,6 +152,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        if (otaController != null) {
+            otaController.stop();
+        }
         webServer.stop();
         dismissPairingDialog();
         super.onDestroy();

@@ -265,6 +265,31 @@
             android:text="@string/btn_demo"
             android:textAllCaps="false" />
 
+        <CheckBox
+            android:id="@+id/check_ota_beta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/check_ota_beta"
+            android:textColor="@color/text" />
+
+        <Button
+            android:id="@+id/btn_ota_check"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp"
+            android:text="@string/btn_ota_check"
+            android:textAllCaps="false" />
+
+        <TextView
+            android:id="@+id/text_ota_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/ota_status_idle"
+            android:textColor="@color/muted"
+            android:textSize="14sp" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

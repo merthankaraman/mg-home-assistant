@@ -1,6 +1,6 @@
 # MG Home Assistant
 
-Sürüm: **0.2**
+Sürüm: **0.3**
 
 MG4 infotainment’dan (veya Demo’da Sim varyantından) araç verisini Home Assistant’a gönderir.
 
@@ -49,7 +49,17 @@ Build Variant: **simDebug**.
 
 ## 4) Arabaya
 
-Build Variant: **carDebug**, `platform.p12` ile imzala.
+Build Variant: **carRelease** (veya carDebug), `tools/sign_and_install_release.bat` ile platform imzala.
+
+## 5) OTA (GitHub Release)
+
+Uygulama `merthankaraman/mg-home-assistant` Releases API’sinden güncelleme çeker.
+
+1. `sign_and_install_release.bat` → `tools/releases/MG4_HA_<sürüm>.apk` + `.sha256`
+2. `publish_github_release.bat` → GitHub Release’e yükler
+3. Arabada **Güncelleme kontrol et** → indir → SHA-256 doğrula → **İndirilenler**’den kur
+
+Release’te hem `.apk` hem `MG4_HA_x.y.apk.sha256` olmalı; aksi halde indirme engellenir.
 
 ## Varlıklar (prefix `mg4` örneği)
 
