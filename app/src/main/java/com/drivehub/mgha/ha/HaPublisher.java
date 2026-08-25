@@ -243,11 +243,11 @@ public final class HaPublisher {
     public static String chargeState(int st) {
         switch (st) {
             case 0: return "unplugged";
-            case 1: return "charging_ac";
+            case 1: return "AC";
             case 5: return "connecting";
             case 7: return "plugged_in";
             case 8: return "stopped";
-            case 10: return "charging_dc";
+            case 10: return "DC";
             default: return st < 0 ? "unknown" : ("code_" + st);
         }
     }

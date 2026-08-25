@@ -52,7 +52,7 @@ Build Variant: **carDebug**, `platform.p12` ile imzala (DriveHub Dort ile aynı)
 | Kilometre | odometre |
 | Dış sıcaklık | °C |
 | Lastik FL/FR/RL/RR | kPa |
-| Şarj durumu | `unplugged` / `charging_ac` / … |
+| Şarj durumu | `unplugged` / `AC` / `DC` / … |
 | AC voltaj / akım | V / A |
 | Batarya voltaj / akım | V / A |
 | Şarj gücü | kW (AC veya batarya V×A) |
