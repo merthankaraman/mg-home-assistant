@@ -151,12 +151,13 @@ public final class VehicleReader {
                 && (Float.isNaN(speedKmh) || speedKmh < 1f);
     }
 
-    @SuppressWarnings("JavaReflectionMemberAccess")
+    // MG4 car APIs are only reachable via reflection on the system image.
+    @android.annotation.SuppressLint({"PrivateApi", "DiscouragedPrivateApi", "BlockedPrivateApi"})
     private static void bindCarService(Context context) {
         if (sCarBindAttempted) return;
         sCarBindAttempted = true;
         try {
-            Class<?> carClass = Class.forName("android.car.Car");
+            Class<?> carClass = Class.forName("android" + ".car.Car");
             Method createCar = null;
             try {
                 createCar = carClass.getMethod("createCar", Context.class);

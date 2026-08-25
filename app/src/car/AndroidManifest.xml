@@ -3,12 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:sharedUserId="android.uid.system">
 
+    <!-- Landscape is set in MainActivity for the car flavor (avoids IDE unresolved-class on overlay). -->
     <application
         android:persistent="true"
-        tools:replace="android:persistent">
-        <activity
-            android:name="com.drivehub.mgha.ui.MainActivity"
-            android:screenOrientation="landscape"
-            tools:replace="android:screenOrientation" />
-    </application>
+        tools:replace="android:persistent" />
 </manifest>

@@ -1,6 +1,7 @@
 package com.drivehub.mgha.sync;
 
 import android.content.Context;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -19,7 +20,6 @@ import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Locale;
@@ -184,7 +184,7 @@ public final class ConfigWebServer {
 
     private static String decode(String v) {
         try {
-            return URLDecoder.decode(v.replace("+", "%20"), StandardCharsets.UTF_8.name());
+            return Uri.decode(v.replace("+", "%20"));
         } catch (Exception e) {
             return v;
         }
@@ -246,19 +246,21 @@ public final class ConfigWebServer {
 
     private static String readHeaders(InputStream in) throws Exception {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        int a, b = -1, c = -1, d = -1;
         int n;
         while ((n = in.read()) != -1) {
             bos.write(n);
-            int s = bos.size();
-            if (s >= 4) {
-                byte[] a = bos.toByteArray();
-                if (a[s - 4] == '\r' && a[s - 3] == '\n' && a[s - 2] == '\r' && a[s - 1] == '\n') {
-                    break;
-                }
+            a = b;
+            b = c;
+            c = d;
+            d = n;
+            if (a == '\r' && b == '\n' && c == '\r' && d == '\n') {
+                break;
             }
-            if (s > 8000) return null;
+            if (bos.size() > 8000) return null;
         }
-        return new String(bos.toByteArray(), StandardCharsets.UTF_8).replace("\r", "");
+        //noinspection CharsetObjectCanBeUsed
+        return bos.toString(StandardCharsets.UTF_8.name()).replace("\r", "");
     }
 
     private static int contentLength(String headers) {

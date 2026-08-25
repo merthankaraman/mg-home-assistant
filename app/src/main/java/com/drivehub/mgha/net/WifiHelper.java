@@ -16,7 +16,14 @@ public final class WifiHelper {
     private WifiHelper() {}
 
     public static boolean hasWifiInternet(Context ctx) {
-        return hasTransportInternet(ctx, NetworkCapabilities.TRANSPORT_WIFI);
+        ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return false;
+        Network net = cm.getActiveNetwork();
+        if (net == null) return false;
+        NetworkCapabilities caps = cm.getNetworkCapabilities(net);
+        return caps != null
+                && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+                && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
     }
 
     public static boolean hasAnyInternet(Context ctx) {
@@ -68,16 +75,5 @@ public final class WifiHelper {
             return ctx.getString(R.string.net_vpn);
         }
         return ctx.getString(R.string.net_other);
-    }
-
-    private static boolean hasTransportInternet(Context ctx, int transport) {
-        ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (cm == null) return false;
-        Network net = cm.getActiveNetwork();
-        if (net == null) return false;
-        NetworkCapabilities caps = cm.getNetworkCapabilities(net);
-        if (caps == null) return false;
-        return caps.hasTransport(transport)
-                && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
     }
 }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Intentional for private HA / LAN setup on the car -->
+    <issue id="InsecureBaseConfiguration" severity="ignore" />
+    <issue id="AcceptsUserCertificates" severity="ignore" />
+    <issue id="CustomX509TrustManager" severity="ignore" />
+    <issue id="TrustAllX509TrustManager" severity="ignore" />
+    <issue id="PrivateApi" severity="ignore" />
+    <issue id="DiscouragedPrivateApi" severity="ignore" />
+    <issue id="BlockedPrivateApi" severity="ignore" />
+</lint>
