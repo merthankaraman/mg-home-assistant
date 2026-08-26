@@ -5,6 +5,7 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.util.Log;
 
 import com.drivehub.mgha.BuildConfig;
@@ -37,6 +38,20 @@ public final class WifiHelper {
         if (net == null) return false;
         NetworkCapabilities caps = cm.getNetworkCapabilities(net);
         return caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+    }
+
+    /** DNS/route oturmuş mu (API 23+). OEM hiç set etmezse false kalabilir. */
+    public static boolean isValidated(Context ctx) {
+        ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return false;
+        Network net = cm.getActiveNetwork();
+        if (net == null) return false;
+        NetworkCapabilities caps = cm.getNetworkCapabilities(net);
+        if (caps == null) return false;
+        if (Build.VERSION.SDK_INT < 23) {
+            return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+        }
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
     }
 
     /** Gönderim için yeterli ağ var mı? */
@@ -92,18 +107,19 @@ public final class WifiHelper {
         if (!caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
             return ctx.getString(R.string.net_no_internet);
         }
+        String base;
         if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-            return ctx.getString(R.string.net_wifi);
+            base = ctx.getString(R.string.net_wifi);
+        } else if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+            base = ctx.getString(R.string.net_cellular);
+        } else if (caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+            base = ctx.getString(R.string.net_ethernet);
+        } else if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+            base = ctx.getString(R.string.net_vpn);
+        } else {
+            base = ctx.getString(R.string.net_other);
         }
-        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
-            return ctx.getString(R.string.net_cellular);
-        }
-        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
-            return ctx.getString(R.string.net_ethernet);
-        }
-        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
-            return ctx.getString(R.string.net_vpn);
-        }
-        return ctx.getString(R.string.net_other);
+        if (isValidated(ctx)) return base + "+ok";
+        return base;
     }
 }

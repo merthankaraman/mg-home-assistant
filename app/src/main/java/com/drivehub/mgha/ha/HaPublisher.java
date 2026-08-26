@@ -41,9 +41,33 @@ public final class HaPublisher {
             out.viaBridge = true;
             return out;
         }
-        // 404 / unknown service → REST fallback; diğer hatalar da fallback dener
-        android.util.Log.i("MGHA_HA", "mg4_bridge.push unavailable, REST fallback: " + formatErr(ctx, push));
-        return publishRest(ctx, client, p, snap, out);
+        // Yalnızca servis yoksa REST; ağ/SSL hatasında fallback yağmuru yapma
+        if (isMissingBridgeService(push)) {
+            android.util.Log.i("MGHA_HA", "mg4_bridge.push yok, REST fallback: " + formatErr(ctx, push));
+            return publishRest(ctx, client, p, snap, out);
+        }
+        android.util.Log.w("MGHA_HA", "push başarısız, REST atlandı (sonraki tick): " + formatErr(ctx, push));
+        out.fail = 1;
+        out.lastError = formatErr(ctx, push);
+        return out;
+    }
+
+    /** 404 / unknown service → entegrasyon yok; geçici ağ hataları değil. */
+    private static boolean isMissingBridgeService(HomeAssistantClient.Result r) {
+        if (r == null) return false;
+        if (r.httpCode == 404) return true;
+        String blob = ((r.error != null ? r.error : "") + " " + (r.body != null ? r.body : "")).toLowerCase();
+        if (blob.contains("connectexception")
+                || blob.contains("unknownhost")
+                || blob.contains("sslhandshake")
+                || blob.contains("sockettimeout")
+                || blob.contains("failed to connect")
+                || blob.contains("unacceptable certificate")) {
+            return false;
+        }
+        return blob.contains("not found")
+                || blob.contains("does not exist")
+                || blob.contains("unable to find service");
     }
 
     public static void markOffline(Context ctx, HomeAssistantClient client, String prefix) {

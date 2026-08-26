@@ -16,6 +16,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.os.SystemClock;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -39,12 +40,20 @@ public class HaBridgeService extends Service {
     private static final String CHANNEL_ID = "mgha_bridge";
     private static final int NOTIF_ID = 41;
 
+    /** Hazır değilken / geçici hatada yeniden deneme. */
+    private static final long RETRY_SOON_MS = 1_000L;
+    /** VALIDATED gelmezse bu süre sonra yine dene (OEM). */
+    private static final long VALIDATED_GRACE_MS = 45_000L;
+
     private HandlerThread workerThread;
     private Handler worker;
     private PowerManager.WakeLock wakeLock;
     private ConnectivityManager connectivityManager;
     private ConnectivityManager.NetworkCallback networkCallback;
     private boolean shuttingDown;
+    private long serviceStartElapsedMs;
+    /** finally’de kullanılacak bir sonraki gecikme; -1 = normal interval. */
+    private long nextDelayMs = -1L;
 
     private final Runnable tickRunnable = this::tick;
 
@@ -53,12 +62,12 @@ public class HaBridgeService extends Service {
         super.onCreate();
         createChannel();
         startFg(buildNotification(getString(R.string.notify_running)));
+        serviceStartElapsedMs = SystemClock.elapsedRealtime();
 
         PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
         if (pm != null) {
             wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "mgha:bridge");
             wakeLock.setReferenceCounted(false);
-            // Renewed on each tick; timeout prevents orphan locks if service dies.
             wakeLock.acquire(HaSettings.intervalMs(this) + 120_000L);
         }
 
@@ -124,6 +133,7 @@ public class HaBridgeService extends Service {
 
     private void tick() {
         Log.i(TAG, "tick başlıyor");
+        nextDelayMs = -1L;
         renewWakeLock();
         try {
             BridgeStatus.lastMessage = getString(R.string.msg_tick);
@@ -133,6 +143,7 @@ public class HaBridgeService extends Service {
             BridgeStatus.carOk = snap.carConnected;
             boolean wifi = WifiHelper.hasWifiInternet(this);
             boolean anyNet = WifiHelper.hasAnyInternet(this);
+            boolean validated = WifiHelper.isValidated(this);
             BridgeStatus.wifiOk = wifi;
             BridgeStatus.lastPreview = preview(snap);
 
@@ -148,6 +159,7 @@ public class HaBridgeService extends Service {
                     + " carOk=" + BridgeStatus.carOk
                     + " net=" + WifiHelper.describe(this)
                     + " any=" + anyNet + " wifi=" + wifi
+                    + " validated=" + validated
                     + " demo=" + HaSettings.demoMode(this)
                     + " wifiOnly=" + HaSettings.wifiOnly(this)
                     + " allowed=" + allowed
@@ -160,6 +172,18 @@ public class HaBridgeService extends Service {
                         ? getString(R.string.msg_no_wifi, WifiHelper.describe(this))
                         : getString(R.string.msg_no_internet));
                 notifyText(getString(R.string.notify_waiting_wifi));
+                nextDelayMs = RETRY_SOON_MS;
+                return;
+            }
+
+            // Erken DNS/SSL: VALIDATED yoksa kısa süre bekle (OEM hiç vermezse grace sonrası gönder)
+            if (!WifiHelper.isSim()
+                    && !validated
+                    && SystemClock.elapsedRealtime() - serviceStartElapsedMs < VALIDATED_GRACE_MS) {
+                BridgeStatus.lastMessage = getString(R.string.msg_wait_net);
+                Log.i(TAG, BridgeStatus.lastMessage);
+                notifyText(BridgeStatus.lastMessage);
+                nextDelayMs = RETRY_SOON_MS;
                 return;
             }
 
@@ -167,6 +191,15 @@ public class HaBridgeService extends Service {
                 BridgeStatus.lastMessage = getString(R.string.msg_sim_need_demo);
                 Log.i(TAG, BridgeStatus.lastMessage);
                 notifyText(BridgeStatus.lastMessage);
+                return;
+            }
+
+            // Boş araç anlığı gönderme (GPS sonra gelebilir)
+            if (!HaSettings.demoMode(this) && !hasUsefulVehicleData(snap)) {
+                BridgeStatus.lastMessage = getString(R.string.msg_wait_car);
+                Log.i(TAG, BridgeStatus.lastMessage + " (cpm henüz yok)");
+                notifyText(BridgeStatus.lastMessage);
+                nextDelayMs = RETRY_SOON_MS;
                 return;
             }
 
@@ -194,6 +227,8 @@ public class HaBridgeService extends Service {
                 String errPart = r.lastError != null ? (" " + r.lastError) : "";
                 BridgeStatus.lastMessage = getString(R.string.msg_sent_partial, r.ok, r.fail, errPart);
                 notifyText(getString(R.string.notify_error));
+                // Geçici HA hatası → kısa sonra tekrar (REST yağmuru yok)
+                nextDelayMs = RETRY_SOON_MS;
             }
             Log.i(TAG, BridgeStatus.lastMessage);
         } catch (Throwable t) {
@@ -202,13 +237,23 @@ public class HaBridgeService extends Service {
                     t.getMessage() == null ? "" : t.getMessage());
             Log.e(TAG, "tick", t);
             notifyText(getString(R.string.notify_error));
+            nextDelayMs = RETRY_SOON_MS;
         } finally {
             broadcastStatus();
             if (!shuttingDown && worker != null) {
-                long delay = HaSettings.intervalMs(this);
+                long delay = nextDelayMs > 0 ? nextDelayMs : HaSettings.intervalMs(this);
                 worker.postDelayed(tickRunnable, delay);
             }
         }
+    }
+
+    /** SOC / menzil / km’den biri doluysa göndermeye değer (GPS şart değil). */
+    private static boolean hasUsefulVehicleData(VehicleSnapshot snap) {
+        if (snap == null) return false;
+        if (!Float.isNaN(snap.socPercent)) return true;
+        if (snap.rangeKm >= 0) return true;
+        if (snap.odometerKm >= 0) return true;
+        return false;
     }
 
     private void tryMarkOffline() {
@@ -229,7 +274,6 @@ public class HaBridgeService extends Service {
         if (connectivityManager == null) return;
         NetworkRequest.Builder b = new NetworkRequest.Builder()
                 .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
-        // Arabada WiFi; telefonda / sim’de hücresel ve ethernet de dinle
         if (!WifiHelper.isSim()) {
             b.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
         }
@@ -237,10 +281,15 @@ public class HaBridgeService extends Service {
         networkCallback = new ConnectivityManager.NetworkCallback() {
             @Override
             public void onAvailable(@NonNull Network network) {
-                Log.i(TAG, "network onAvailable → tick");
-                if (worker != null) {
-                    worker.removeCallbacks(tickRunnable);
-                    worker.post(tickRunnable);
+                scheduleTickSoon("onAvailable");
+            }
+
+            @Override
+            public void onCapabilitiesChanged(@NonNull Network network,
+                                              @NonNull NetworkCapabilities caps) {
+                if (Build.VERSION.SDK_INT >= 23
+                        && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
+                    scheduleTickSoon("validated");
                 }
             }
         };
@@ -249,6 +298,13 @@ public class HaBridgeService extends Service {
         } catch (Exception e) {
             Log.w(TAG, "network callback: " + e.getMessage());
         }
+    }
+
+    private void scheduleTickSoon(String reason) {
+        Log.i(TAG, "network " + reason + " → tick");
+        if (worker == null) return;
+        worker.removeCallbacks(tickRunnable);
+        worker.post(tickRunnable);
     }
 
     private void unregisterNetworkCallback() {

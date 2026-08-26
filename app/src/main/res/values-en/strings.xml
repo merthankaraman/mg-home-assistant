@@ -93,6 +93,8 @@
     <string name="msg_service_started">Service started</string>
     <string name="msg_service_stopped">Service stopped</string>
     <string name="msg_tick">Tick…</string>
+    <string name="msg_wait_car">Waiting for vehicle data…</string>
+    <string name="msg_wait_net">Network settling…</string>
     <string name="msg_not_configured">URL and token not saved</string>
     <string name="msg_no_internet_sim">No internet — not sent (%1$s)</string>
     <string name="msg_no_wifi">No Wi‑Fi — not sent (active: %1$s)</string>

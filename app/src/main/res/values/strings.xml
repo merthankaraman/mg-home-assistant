@@ -93,6 +93,8 @@
     <string name="msg_service_started">Servis açıldı</string>
     <string name="msg_service_stopped">Servis kapalı</string>
     <string name="msg_tick">Tick…</string>
+    <string name="msg_wait_car">Araç verisi bekleniyor…</string>
+    <string name="msg_wait_net">Ağ oturuyor…</string>
     <string name="msg_not_configured">URL ve token kaydedilmedi</string>
     <string name="msg_no_internet_sim">İnternet yok — gönderilmedi (%1$s)</string>
     <string name="msg_no_wifi">WiFi yok — gönderilmedi (aktif: %1$s)</string>
