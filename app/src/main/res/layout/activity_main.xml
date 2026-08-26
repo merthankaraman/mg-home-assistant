@@ -213,6 +213,13 @@
             android:text="@string/check_wifi_on_boot"
             android:textColor="@color/text" />
 
+        <CheckBox
+            android:id="@+id/check_verbose_log"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/check_verbose_log"
+            android:textColor="@color/text" />
+
         <LinearLayout
             style="?android:attr/buttonBarStyle"
             android:layout_width="match_parent"

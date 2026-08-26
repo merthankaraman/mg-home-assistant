@@ -18,7 +18,10 @@ public final class HaSettings {
     public static final String KEY_INSECURE = "allow_insecure_ssl";
     public static final String KEY_AUTOSTART = "autostart";
     public static final String KEY_WIFI_ON_BOOT = "wifi_on_boot";
+    public static final String KEY_VERBOSE_LOG = "verbose_log";
     public static final String KEY_DEMO = "demo_mode";
+
+    private static volatile boolean sVerboseLog;
 
     private HaSettings() {}
 
@@ -70,6 +73,20 @@ public final class HaSettings {
         return prefs(ctx).getBoolean(KEY_WIFI_ON_BOOT, !WifiHelper.isSim());
     }
 
+    /** Ayrıntılı logcat (tick/ağ/HA). Varsayılan kapalı. */
+    public static boolean verboseLog(Context ctx) {
+        return prefs(ctx).getBoolean(KEY_VERBOSE_LOG, false);
+    }
+
+    public static boolean verboseLogCached() {
+        return sVerboseLog;
+    }
+
+    public static void refreshVerboseCache(Context ctx) {
+        sVerboseLog = verboseLog(ctx);
+        com.drivehub.mgha.util.MghaLog.refresh(ctx);
+    }
+
     public static boolean demoMode(Context ctx) {
         return prefs(ctx).getBoolean(KEY_DEMO, false);
     }
@@ -84,7 +101,7 @@ public final class HaSettings {
 
     public static void save(Context ctx, String url, String token, String prefix,
                             int intervalMin, boolean wifiOnly, boolean insecure,
-                            boolean autoStart, boolean wifiOnBoot) {
+                            boolean autoStart, boolean wifiOnBoot, boolean verboseLog) {
         prefs(ctx).edit()
                 .putString(KEY_URL, url == null ? "" : url.trim())
                 .putString(KEY_TOKEN, token == null ? "" : token.trim())
@@ -94,7 +111,9 @@ public final class HaSettings {
                 .putBoolean(KEY_INSECURE, insecure)
                 .putBoolean(KEY_AUTOSTART, autoStart)
                 .putBoolean(KEY_WIFI_ON_BOOT, wifiOnBoot)
+                .putBoolean(KEY_VERBOSE_LOG, verboseLog)
                 .apply();
+        refreshVerboseCache(ctx);
     }
 
     public static boolean applyJson(Context ctx, JSONObject o) {
@@ -107,7 +126,8 @@ public final class HaSettings {
                 o.optBoolean("wifiOnly", !WifiHelper.isSim()),
                 o.optBoolean("insecure", false),
                 o.optBoolean("autoStart", true),
-                o.optBoolean("wifiOnBoot", !WifiHelper.isSim()));
+                o.optBoolean("wifiOnBoot", !WifiHelper.isSim()),
+                o.optBoolean("verboseLog", false));
         return true;
     }
 

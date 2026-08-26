@@ -4,6 +4,7 @@ import android.content.Context;
 
 import com.drivehub.mgha.R;
 import com.drivehub.mgha.hardware.VehicleSnapshot;
+import com.drivehub.mgha.util.MghaLog;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -43,10 +44,10 @@ public final class HaPublisher {
         }
         // Yalnızca servis yoksa REST; ağ/SSL hatasında fallback yağmuru yapma
         if (isMissingBridgeService(push)) {
-            android.util.Log.i("MGHA_HA", "mg4_bridge.push yok, REST fallback: " + formatErr(ctx, push));
+            MghaLog.i("MGHA_HA", "mg4_bridge.push yok, REST fallback: " + formatErr(ctx, push));
             return publishRest(ctx, client, p, snap, out);
         }
-        android.util.Log.w("MGHA_HA", "push başarısız, REST atlandı (sonraki tick): " + formatErr(ctx, push));
+        MghaLog.w("MGHA_HA", "push başarısız, REST atlandı (sonraki tick): " + formatErr(ctx, push));
         out.fail = 1;
         out.lastError = formatErr(ctx, push);
         return out;

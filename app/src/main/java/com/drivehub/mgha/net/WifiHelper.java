@@ -6,10 +6,9 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.wifi.WifiManager;
 import android.os.Build;
-import android.util.Log;
-
 import com.drivehub.mgha.BuildConfig;
 import com.drivehub.mgha.R;
+import com.drivehub.mgha.util.MghaLog;
 
 /**
  * Ağ kontrolü. {@code sim} varyantında WiFi şart değil (hücresel / ethernet de olur).
@@ -75,18 +74,18 @@ public final class WifiHelper {
             WifiManager wm = (WifiManager) ctx.getApplicationContext()
                     .getSystemService(Context.WIFI_SERVICE);
             if (wm == null) {
-                Log.w(TAG, "WifiManager yok");
+                MghaLog.w(TAG, "WifiManager yok");
                 return false;
             }
             if (wm.isWifiEnabled()) {
-                Log.i(TAG, "WiFi zaten açık");
+                MghaLog.i(TAG, "WiFi zaten açık");
                 return true;
             }
             boolean ok = wm.setWifiEnabled(true);
-            Log.i(TAG, "setWifiEnabled(true) → " + ok);
+            MghaLog.i(TAG, "setWifiEnabled(true) → " + ok);
             return ok;
         } catch (Throwable t) {
-            Log.e(TAG, "WiFi açılamadı: " + t.getMessage());
+            MghaLog.e(TAG, "WiFi açılamadı: " + t.getMessage());
             return false;
         }
     }

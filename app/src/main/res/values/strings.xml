@@ -30,6 +30,7 @@
     <string name="check_insecure_ssl">Kendinden imzalı SSL kabul et</string>
     <string name="check_autostart">Açılışta servisi başlat</string>
     <string name="check_wifi_on_boot">Açılışta WiFi aç</string>
+    <string name="check_verbose_log">Ayrıntılı log (logcat)</string>
     <string name="btn_save">Kaydet</string>
     <string name="btn_ha_test">HA test</string>
     <string name="btn_service_start">Servisi başlat</string>

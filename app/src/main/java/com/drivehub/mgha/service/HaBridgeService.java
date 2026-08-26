@@ -17,7 +17,6 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.SystemClock;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -31,6 +30,7 @@ import com.drivehub.mgha.hardware.VehicleSnapshot;
 import com.drivehub.mgha.net.WifiHelper;
 import com.drivehub.mgha.prefs.HaSettings;
 import com.drivehub.mgha.ui.MainActivity;
+import com.drivehub.mgha.util.MghaLog;
 
 public class HaBridgeService extends Service {
     public static final String ACTION_STATUS = "com.drivehub.mgha.STATUS";
@@ -44,6 +44,8 @@ public class HaBridgeService extends Service {
     private static final long RETRY_SOON_MS = 1_000L;
     /** VALIDATED gelmezse bu süre sonra yine dene (OEM). */
     private static final long VALIDATED_GRACE_MS = 45_000L;
+    /** “yok sayıldı” logu yalnız servis açılışından sonraki bu süre. */
+    private static final long IGNORE_LOG_WINDOW_MS = 120_000L;
 
     private HandlerThread workerThread;
     private Handler worker;
@@ -63,6 +65,7 @@ public class HaBridgeService extends Service {
         createChannel();
         startFg(buildNotification(getString(R.string.notify_running)));
         serviceStartElapsedMs = SystemClock.elapsedRealtime();
+        HaSettings.refreshVerboseCache(this);
 
         PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
         if (pm != null) {
@@ -132,7 +135,7 @@ public class HaBridgeService extends Service {
     }
 
     private void tick() {
-        Log.i(TAG, "tick başlıyor");
+        MghaLog.i(TAG, "tick başlıyor");
         nextDelayMs = -1L;
         renewWakeLock();
         try {
@@ -149,13 +152,13 @@ public class HaBridgeService extends Service {
 
             if (!HaSettings.isConfigured(this)) {
                 BridgeStatus.lastMessage = getString(R.string.msg_not_configured);
-                Log.i(TAG, BridgeStatus.lastMessage);
+                MghaLog.i(TAG, BridgeStatus.lastMessage);
                 notifyText(BridgeStatus.lastMessage);
                 return;
             }
 
             boolean allowed = WifiHelper.canSend(this, HaSettings.wifiOnly(this));
-            Log.i(TAG, "tick flavor=" + com.drivehub.mgha.BuildConfig.FLAVOR
+            MghaLog.i(TAG, "tick flavor=" + com.drivehub.mgha.BuildConfig.FLAVOR
                     + " carOk=" + BridgeStatus.carOk
                     + " net=" + WifiHelper.describe(this)
                     + " any=" + anyNet + " wifi=" + wifi
@@ -181,7 +184,7 @@ public class HaBridgeService extends Service {
                     && !validated
                     && SystemClock.elapsedRealtime() - serviceStartElapsedMs < VALIDATED_GRACE_MS) {
                 BridgeStatus.lastMessage = getString(R.string.msg_wait_net);
-                Log.i(TAG, BridgeStatus.lastMessage);
+                MghaLog.i(TAG, BridgeStatus.lastMessage);
                 notifyText(BridgeStatus.lastMessage);
                 nextDelayMs = RETRY_SOON_MS;
                 return;
@@ -189,7 +192,7 @@ public class HaBridgeService extends Service {
 
             if (WifiHelper.isSim() && !HaSettings.demoMode(this) && !snap.carConnected) {
                 BridgeStatus.lastMessage = getString(R.string.msg_sim_need_demo);
-                Log.i(TAG, BridgeStatus.lastMessage);
+                MghaLog.i(TAG, BridgeStatus.lastMessage);
                 notifyText(BridgeStatus.lastMessage);
                 return;
             }
@@ -197,7 +200,7 @@ public class HaBridgeService extends Service {
             // Boş araç anlığı gönderme (GPS sonra gelebilir)
             if (!HaSettings.demoMode(this) && !hasUsefulVehicleData(snap)) {
                 BridgeStatus.lastMessage = getString(R.string.msg_wait_car);
-                Log.i(TAG, BridgeStatus.lastMessage + " (cpm henüz yok)");
+                MghaLog.i(TAG, BridgeStatus.lastMessage + " (cpm henüz yok)");
                 notifyText(BridgeStatus.lastMessage);
                 nextDelayMs = RETRY_SOON_MS;
                 return;
@@ -230,12 +233,12 @@ public class HaBridgeService extends Service {
                 // Geçici HA hatası → kısa sonra tekrar (REST yağmuru yok)
                 nextDelayMs = RETRY_SOON_MS;
             }
-            Log.i(TAG, BridgeStatus.lastMessage);
+            MghaLog.i(TAG, BridgeStatus.lastMessage);
         } catch (Throwable t) {
             BridgeStatus.lastSendOk = false;
             BridgeStatus.lastMessage = getString(R.string.msg_error,
                     t.getMessage() == null ? "" : t.getMessage());
-            Log.e(TAG, "tick", t);
+            MghaLog.e(TAG, "tick", t);
             notifyText(getString(R.string.notify_error));
             nextDelayMs = RETRY_SOON_MS;
         } finally {
@@ -297,7 +300,7 @@ public class HaBridgeService extends Service {
         try {
             connectivityManager.registerNetworkCallback(req, networkCallback);
         } catch (Exception e) {
-            Log.w(TAG, "network callback: " + e.getMessage());
+            MghaLog.w(TAG, "network callback: " + e.getMessage());
         }
     }
 
@@ -308,12 +311,16 @@ public class HaBridgeService extends Service {
         if (BridgeStatus.lastSendOk && last > 0) {
             long since = System.currentTimeMillis() - last;
             if (since < interval) {
-                Log.i(TAG, "network " + reason + " yok sayıldı (aralık "
-                        + ((interval - since) / 1000L) + "s kaldı)");
+                // Ayrıntılı log + servis açılışından ilk 2 dk
+                if (MghaLog.isVerbose()
+                        && SystemClock.elapsedRealtime() - serviceStartElapsedMs < IGNORE_LOG_WINDOW_MS) {
+                    MghaLog.i(TAG, "network " + reason + " yok sayıldı (aralık "
+                            + ((interval - since) / 1000L) + "s kaldı)");
+                }
                 return;
             }
         }
-        Log.i(TAG, "network " + reason + " → tick");
+        MghaLog.i(TAG, "network " + reason + " → tick");
         worker.removeCallbacks(tickRunnable);
         worker.post(tickRunnable);
     }

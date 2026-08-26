@@ -15,6 +15,8 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
 
+import com.drivehub.mgha.util.MghaLog;
+
 import androidx.core.content.ContextCompat;
 
 import com.drivehub.mgha.net.WifiHelper;
@@ -72,7 +74,7 @@ public final class VehicleReader {
         public void onLocationChanged(Location location) {
             if (location != null) {
                 sCachedGps = location;
-                Log.i(TAG, "GPS update " + location.getProvider()
+                MghaLog.i(TAG, "GPS update " + location.getProvider()
                         + " lat=" + location.getLatitude()
                         + " lon=" + location.getLongitude());
             }
@@ -92,7 +94,7 @@ public final class VehicleReader {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             sSaicMapBinder = service;
-            Log.i(TAG, "SAIC MapService bağlı");
+            MghaLog.i(TAG, "SAIC MapService bağlı");
         }
 
         @Override
@@ -106,9 +108,10 @@ public final class VehicleReader {
     public static synchronized void init(Context context) {
         if (context == null) return;
         sAppContext = context.getApplicationContext();
+        HaSettings.refreshVerboseCache(sAppContext);
         // Telefonda / sim’de android.car yok; bağlanmaya çalışma
         if (WifiHelper.isSim()) {
-            Log.i(TAG, "sim: Car/Map bind atlandı");
+            MghaLog.i(TAG, "sim: Car/Map bind atlandı");
             return;
         }
         bindCarService(sAppContext);
@@ -130,13 +133,13 @@ public final class VehicleReader {
                 != PackageManager.PERMISSION_GRANTED
                 && ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
-            Log.w(TAG, "GPS: konum izni yok");
+            MghaLog.w(TAG, "GPS: konum izni yok");
             return;
         }
         try {
             LocationManager lm = (LocationManager) ctx.getSystemService(Context.LOCATION_SERVICE);
             if (lm == null) {
-                Log.w(TAG, "GPS: LocationManager yok");
+                MghaLog.w(TAG, "GPS: LocationManager yok");
                 return;
             }
             sLocationManager = lm;
@@ -144,12 +147,12 @@ public final class VehicleReader {
             Location best = pickBestLastKnown(lm);
             if (best != null) {
                 sCachedGps = best;
-                Log.i(TAG, "GPS lastKnown " + best.getProvider()
+                MghaLog.i(TAG, "GPS lastKnown " + best.getProvider()
                         + " lat=" + best.getLatitude() + " lon=" + best.getLongitude());
             }
             java.util.List<String> providers = lm.getProviders(true);
             if (providers == null || providers.isEmpty()) {
-                Log.w(TAG, "GPS: açık provider yok");
+                MghaLog.w(TAG, "GPS: açık provider yok");
                 return;
             }
             Handler main = new Handler(Looper.getMainLooper());
@@ -160,13 +163,13 @@ public final class VehicleReader {
                     lm.requestLocationUpdates(provider, 15_000L, 10f, sGpsListener, main.getLooper());
                     started++;
                 } catch (Throwable t) {
-                    Log.w(TAG, "GPS listen " + provider + ": " + t.getMessage());
+                    MghaLog.w(TAG, "GPS listen " + provider + ": " + t.getMessage());
                 }
             }
             sGpsListening = started > 0;
-            Log.i(TAG, "GPS listening providers=" + started + "/" + providers.size());
+            MghaLog.i(TAG, "GPS listening providers=" + started + "/" + providers.size());
         } catch (Throwable t) {
-            Log.w(TAG, "GPS start: " + t.getMessage());
+            MghaLog.w(TAG, "GPS start: " + t.getMessage());
         }
     }
 
@@ -183,7 +186,7 @@ public final class VehicleReader {
                 }
             }
         } catch (SecurityException e) {
-            Log.w(TAG, "GPS lastKnown izin: " + e.getMessage());
+            MghaLog.w(TAG, "GPS lastKnown izin: " + e.getMessage());
         } catch (Throwable ignored) {}
         return best;
     }
@@ -242,7 +245,7 @@ public final class VehicleReader {
                 s.batteryVoltageV, speedKmh);
         fillGps(s);
 
-        Log.i(TAG, "read cpm=" + (sCarPropertyManager != null)
+        MghaLog.i(TAG, "read cpm=" + (sCarPropertyManager != null)
                 + " soc=" + s.socPercent
                 + " range=" + s.rangeKm
                 + " km=" + s.odometerKm
@@ -281,9 +284,9 @@ public final class VehicleReader {
             s.longitude = loc.getLongitude();
             if (loc.hasAccuracy()) s.gpsAccuracyM = loc.getAccuracy();
         } catch (SecurityException e) {
-            Log.w(TAG, "GPS izni yok: " + e.getMessage());
+            MghaLog.w(TAG, "GPS izni yok: " + e.getMessage());
         } catch (Throwable t) {
-            Log.w(TAG, "GPS okunamadı: " + t.getMessage());
+            MghaLog.w(TAG, "GPS okunamadı: " + t.getMessage());
         }
     }
 
@@ -302,7 +305,7 @@ public final class VehicleReader {
         sCarBindAttempted = true;
         try {
             Class<?> carClass = Class.forName("android" + ".car.Car");
-            Log.i(TAG, "android.car.Car bulundu");
+            MghaLog.i(TAG, "android.car.Car bulundu");
 
             Method createCarCtx = null;
             Method createCarHandler = null;
@@ -321,17 +324,17 @@ public final class VehicleReader {
             if (createCarCtx != null) {
                 try {
                     car = createCarCtx.invoke(null, context);
-                    if (car != null) Log.i(TAG, "createCar(Context) OK");
+                    if (car != null) MghaLog.i(TAG, "createCar(Context) OK");
                 } catch (Exception e) {
-                    Log.w(TAG, "createCar(Context): " + e.getMessage());
+                    MghaLog.w(TAG, "createCar(Context): " + e.getMessage());
                 }
             }
             if (car == null && createCarHandler != null) {
                 try {
                     car = createCarHandler.invoke(null, context, new Handler(Looper.getMainLooper()));
-                    if (car != null) Log.i(TAG, "createCar(Context,Handler) OK");
+                    if (car != null) MghaLog.i(TAG, "createCar(Context,Handler) OK");
                 } catch (Exception e) {
-                    Log.w(TAG, "createCar(Context,Handler): " + e.getMessage());
+                    MghaLog.w(TAG, "createCar(Context,Handler): " + e.getMessage());
                 }
             }
             if (car == null && createCarSc != null) {
@@ -339,20 +342,20 @@ public final class VehicleReader {
                     ServiceConnection sc = new ServiceConnection() {
                         @Override
                         public void onServiceConnected(ComponentName name, IBinder service) {
-                            Log.i(TAG, "Car ServiceConnection bağlı: " + name);
+                            MghaLog.i(TAG, "Car ServiceConnection bağlı: " + name);
                             tryGetManagers(carClass);
                         }
 
                         @Override
                         public void onServiceDisconnected(ComponentName name) {
-                            Log.w(TAG, "Car bağlantısı kesildi");
+                            MghaLog.w(TAG, "Car bağlantısı kesildi");
                             sCarPropertyManager = null;
                         }
                     };
                     car = createCarSc.invoke(null, context, sc);
-                    if (car != null) Log.i(TAG, "createCar(Context,SC) — callback bekleniyor");
+                    if (car != null) MghaLog.i(TAG, "createCar(Context,SC) — callback bekleniyor");
                 } catch (Exception e) {
-                    Log.w(TAG, "createCar(Context,SC): " + e.getMessage());
+                    MghaLog.w(TAG, "createCar(Context,SC): " + e.getMessage());
                 }
             }
             if (car == null) {
@@ -364,17 +367,17 @@ public final class VehicleReader {
             try {
                 Method connect = carClass.getMethod("connect");
                 connect.invoke(car);
-                Log.i(TAG, "car.connect() çağrıldı");
+                MghaLog.i(TAG, "car.connect() çağrıldı");
             } catch (NoSuchMethodException ignored) {
             } catch (Exception e) {
-                Log.w(TAG, "car.connect: " + e.getMessage());
+                MghaLog.w(TAG, "car.connect: " + e.getMessage());
             }
 
             boolean connected = false;
             try {
                 Method isConnected = carClass.getMethod("isConnected");
                 connected = Boolean.TRUE.equals(isConnected.invoke(car));
-                Log.i(TAG, "isConnected=" + connected);
+                MghaLog.i(TAG, "isConnected=" + connected);
             } catch (Exception ignored) {}
 
             if (connected) {
@@ -412,7 +415,7 @@ public final class VehicleReader {
                 Class<?> carClass = Class.forName("android" + ".car.Car");
                 tryGetManagers(carClass);
             } catch (Exception e) {
-                Log.w(TAG, "ensureReady: " + e.getMessage());
+                MghaLog.w(TAG, "ensureReady: " + e.getMessage());
             }
         } else {
             sCarBindAttempted = false;
@@ -427,9 +430,9 @@ public final class VehicleReader {
             try {
                 Method isConnected = carClass.getMethod("isConnected");
                 boolean connected = Boolean.TRUE.equals(isConnected.invoke(sCar));
-                Log.i(TAG, "tryGetManagers isConnected=" + connected);
+                MghaLog.i(TAG, "tryGetManagers isConnected=" + connected);
                 if (!connected) {
-                    Log.w(TAG, "Car henüz bağlı değil — manager bekleniyor");
+                    MghaLog.w(TAG, "Car henüz bağlı değil — manager bekleniyor");
                     return;
                 }
             } catch (Exception ignored) {}
@@ -442,7 +445,7 @@ public final class VehicleReader {
             Object cpm = getCarManager.invoke(sCar, propertyService);
             if (cpm != null) {
                 sCarPropertyManager = cpm;
-                Log.i(TAG, "CarPropertyManager hazır: " + cpm.getClass().getName());
+                MghaLog.i(TAG, "CarPropertyManager hazır: " + cpm.getClass().getName());
             } else {
                 Log.e(TAG, "CarPropertyManager null (izin yok?)");
             }
@@ -450,12 +453,12 @@ public final class VehicleReader {
                 Object bms = getCarManager.invoke(sCar, "bms");
                 if (bms != null) {
                     registerBmsCallback(bms);
-                    Log.i(TAG, "CarBMSManager hazır");
+                    MghaLog.i(TAG, "CarBMSManager hazır");
                 } else {
-                    Log.w(TAG, "CarBMSManager null");
+                    MghaLog.w(TAG, "CarBMSManager null");
                 }
             } catch (Exception e) {
-                Log.w(TAG, "BMS manager yok: " + e.getMessage());
+                MghaLog.w(TAG, "BMS manager yok: " + e.getMessage());
             }
         } catch (Exception e) {
             Log.e(TAG, "tryGetManagers: " + e.getClass().getSimpleName() + ": " + e.getMessage());
@@ -488,9 +491,9 @@ public final class VehicleReader {
                         return null;
                     });
             registerMethod.invoke(bmsManager, proxy);
-            Log.i(TAG, "BMS callback kayıtlı");
+            MghaLog.i(TAG, "BMS callback kayıtlı");
         } catch (Throwable t) {
-            Log.w(TAG, "BMS callback: " + t.getMessage());
+            MghaLog.w(TAG, "BMS callback: " + t.getMessage());
         }
     }
 
@@ -532,9 +535,9 @@ public final class VehicleReader {
             Intent intent = new Intent();
             intent.setClassName(SAIC_MAP_PACKAGE, SAIC_MAP_SERVICE_CLASS);
             boolean ok = context.bindService(intent, sMapConnection, Context.BIND_AUTO_CREATE);
-            Log.i(TAG, "MapService bind=" + ok);
+            MghaLog.i(TAG, "MapService bind=" + ok);
         } catch (Throwable t) {
-            Log.w(TAG, "MapService bind hata: " + t.getMessage());
+            MghaLog.w(TAG, "MapService bind hata: " + t.getMessage());
         }
     }
 
@@ -542,7 +545,7 @@ public final class VehicleReader {
     private static int readOutsideTempC() {
         float v = getFloatArea(PROP_OUT_CAR_TEMP, AREA_HVAC);
         if (Float.isNaN(v) || v <= OUT_CAR_TEMP_INVALID + 1f || v < -50f || v > 80f) {
-            Log.w(TAG, "outCarTemp geçersiz: " + v);
+            MghaLog.w(TAG, "outCarTemp geçersiz: " + v);
             return -1;
         }
         return Math.round(v);
@@ -588,7 +591,7 @@ public final class VehicleReader {
         if (sLoggedPropErr.putIfAbsent(propId, Boolean.TRUE) != null) return;
         Throwable c = t instanceof java.lang.reflect.InvocationTargetException
                 ? ((java.lang.reflect.InvocationTargetException) t).getCause() : t;
-        Log.w(TAG, "prop 0x" + Integer.toHexString(propId) + " "
+        MghaLog.w(TAG, "prop 0x" + Integer.toHexString(propId) + " "
                 + (c != null ? c.getClass().getSimpleName() + ": " + c.getMessage() : String.valueOf(t)));
     }
 

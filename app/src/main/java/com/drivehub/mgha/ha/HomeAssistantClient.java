@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.Log;
 
 import com.drivehub.mgha.R;
+import com.drivehub.mgha.util.MghaLog;
 
 import org.json.JSONObject;
 
@@ -103,7 +104,7 @@ public class HomeAssistantClient {
         long t0 = System.currentTimeMillis();
         try {
             URL url = new URL(baseUrl + path);
-            Log.i(TAG, "→ " + method + " " + path);
+            MghaLog.i(TAG, "→ " + method + " " + path);
             conn = (HttpURLConnection) url.openConnection();
             conn.setConnectTimeout(CONNECT_MS);
             conn.setReadTimeout(READ_MS);
@@ -128,7 +129,7 @@ public class HomeAssistantClient {
             String body = readStream(is);
             long ms = System.currentTimeMillis() - t0;
             if (code >= 200 && code < 300) {
-                Log.i(TAG, "← " + code + " " + path + " (" + ms + "ms)");
+                MghaLog.i(TAG, "← " + code + " " + path + " (" + ms + "ms)");
                 return Result.success(code, body);
             }
             Log.e(TAG, "← " + code + " " + path + " (" + ms + "ms) " + body);

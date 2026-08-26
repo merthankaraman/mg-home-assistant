@@ -53,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private CheckBox insecureView;
     private CheckBox autoStartView;
     private CheckBox wifiOnBootView;
+    private CheckBox verboseLogView;
     private TextView statusView;
     private TextView previewView;
     private Button startStopBtn;
@@ -97,6 +98,7 @@ public class MainActivity extends AppCompatActivity {
         insecureView = findViewById(R.id.check_insecure);
         autoStartView = findViewById(R.id.check_autostart);
         wifiOnBootView = findViewById(R.id.check_wifi_on_boot);
+        verboseLogView = findViewById(R.id.check_verbose_log);
         statusView = findViewById(R.id.text_status);
         previewView = findViewById(R.id.text_preview);
         startStopBtn = findViewById(R.id.btn_start_stop);
@@ -109,6 +111,7 @@ public class MainActivity extends AppCompatActivity {
                 BuildConfig.DEBUG ? getString(R.string.version_debug_suffix) + ")" : ""));
 
         loadFromSettings();
+        HaSettings.refreshVerboseCache(this);
 
         findViewById(R.id.btn_save).setOnClickListener(v -> saveSettings());
         findViewById(R.id.btn_test).setOnClickListener(v -> testHa());
@@ -183,6 +186,7 @@ public class MainActivity extends AppCompatActivity {
         insecureView.setChecked(HaSettings.allowInsecureSsl(this));
         autoStartView.setChecked(HaSettings.autoStart(this));
         wifiOnBootView.setChecked(HaSettings.wifiOnBoot(this));
+        verboseLogView.setChecked(HaSettings.verboseLog(this));
     }
 
     private void requestNotifyPermission() {
@@ -235,7 +239,8 @@ public class MainActivity extends AppCompatActivity {
                 wifiOnlyView.isChecked(),
                 insecureView.isChecked(),
                 autoStartView.isChecked(),
-                wifiOnBootView.isChecked());
+                wifiOnBootView.isChecked(),
+                verboseLogView.isChecked());
         Toast.makeText(this, R.string.toast_saved, Toast.LENGTH_SHORT).show();
         refreshStatus();
     }
