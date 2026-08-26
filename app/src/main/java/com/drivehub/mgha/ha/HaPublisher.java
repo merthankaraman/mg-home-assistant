@@ -77,6 +77,7 @@ public final class HaPublisher {
                 "sensor." + p + "_battery_charging_power",
                 "sensor." + p + "_station_dc_current",
                 "sensor." + p + "_station_dc_power",
+                "sensor." + p + "_charge_remaining",
                 "sensor." + p + "_last_update"
         };
         for (String id : sensors) {
@@ -104,6 +105,9 @@ public final class HaPublisher {
             putNum(o, "battery_voltage", snap.batteryVoltageV);
             putNum(o, "battery_current", snap.batteryCurrentA);
             putNum(o, "battery_charging_power", snap.dcChargingPowerKw);
+            if (snap.chargeStatus == 1 || snap.chargeStatus == 10) {
+                putInt(o, "charge_remaining", snap.chargeRemainingMin);
+            }
             if (snap.chargeStatus == 10) {
                 putNum(o, "station_dc_current", snap.stationDcCurrentA);
                 putNum(o, "station_dc_power", snap.stationDcPowerKw);
@@ -169,6 +173,10 @@ public final class HaPublisher {
                 binAttrs(ctx.getString(R.string.ha_name_charging)));
         postStr(client, out, members, "sensor." + p + "_charging_status", chargeState(snap.chargeStatus),
                 attrs(ctx.getString(R.string.ha_name_charging_status), null, null, null, "mdi:ev-station"));
+        if (snap.chargeStatus == 1 || snap.chargeStatus == 10) {
+            postInt(client, out, members, "sensor." + p + "_charge_remaining", snap.chargeRemainingMin,
+                    attrs(ctx.getString(R.string.ha_name_charge_remaining), "min", "duration", "measurement", "mdi:timer-sand"));
+        }
         postNum(client, out, members, "sensor." + p + "_battery_voltage", snap.batteryVoltageV,
                 attrs(ctx.getString(R.string.ha_name_battery_voltage), "V", "voltage", "measurement", "mdi:car-battery"));
         postNum(client, out, members, "sensor." + p + "_battery_current", snap.batteryCurrentA,

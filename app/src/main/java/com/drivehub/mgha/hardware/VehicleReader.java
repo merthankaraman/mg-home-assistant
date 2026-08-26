@@ -42,6 +42,8 @@ public final class VehicleReader {
     private static final int PROP_AC_AMP = 0x2160F43C;
     private static final int PROP_AC_VOLT = 0x2160F43D;
     private static final int PROP_CHG_STATUS = 0x2140F409;
+    /** Tahmini kalan şarj süresi (dakika) — getPredictChargingTime. */
+    private static final int PROP_CHARGE_REMAIN_MIN = 0x2140F417;
     private static final int PROP_TOTAL_MILEAGE = 0x21401566;
     private static final int PROP_TIRE_PRESSURE_FL = 0x21401553;
     private static final int PROP_TIRE_PRESSURE_FR = 0x21401554;
@@ -210,6 +212,13 @@ public final class VehicleReader {
         s.tireKpaRr = getInt(PROP_TIRE_PRESSURE_RR);
 
         s.chargeStatus = firstInt(getInt(PROP_CHG_STATUS), bmsInt(PROP_CHG_STATUS));
+        if (s.chargeStatus == 1 || s.chargeStatus == 10) {
+            int remain = firstInt(getInt(PROP_CHARGE_REMAIN_MIN), bmsInt(PROP_CHARGE_REMAIN_MIN));
+            // 2046 sentinel (F418); F417 için de aynı geçersiz değeri ele
+            if (remain >= 0 && remain != 2046) {
+                s.chargeRemainingMin = remain;
+            }
+        }
         // Dort: batarya/AC değerleri BMS callback cache öncelikli
         s.batteryVoltageV = firstFloat(bmsFloat(PROP_BATT_VOLT), getFloat(PROP_BATT_VOLT));
         s.batteryCurrentA = firstFloat(bmsFloat(PROP_CHR_AMP_ACT), getFloat(PROP_CHR_AMP_ACT));

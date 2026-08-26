@@ -47,6 +47,7 @@ PUSH_SCHEMA = vol.Schema(
         vol.Optional("ac_voltage"): vol.Coerce(float),
         vol.Optional("ac_current"): vol.Coerce(float),
         vol.Optional("ac_charging_power"): vol.Coerce(float),
+        vol.Optional("charge_remaining"): vol.Coerce(int),
         vol.Optional("last_update"): cv.string,
         vol.Optional("latitude"): vol.Coerce(float),
         vol.Optional("longitude"): vol.Coerce(float),
@@ -85,6 +86,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if merged.get("charging_status") != "DC":
                 merged.pop("station_dc_current", None)
                 merged.pop("station_dc_power", None)
+            # Kalan süre yalnız AC/DC şarjdayken; payload'da yoksa temizle
+            if merged.get("charging_status") not in ("AC", "DC") or "charge_remaining" not in payload:
+                merged.pop("charge_remaining", None)
             store["data"] = merged
             updated = True
             async_dispatcher_send(hass, f"{SIGNAL_UPDATE}_{entry_id}")

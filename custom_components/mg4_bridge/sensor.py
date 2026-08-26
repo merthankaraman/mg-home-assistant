@@ -16,6 +16,7 @@ from homeassistant.const import (
     UnitOfPower,
     UnitOfPressure,
     UnitOfTemperature,
+    UnitOfTime,
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -25,26 +26,30 @@ from homeassistant.util import dt as dt_util
 from .const import CONF_NAME, CONF_PREFIX, DOMAIN, SIGNAL_UPDATE
 from .device import bridge_device
 
-# key, name, unit, device_class, state_class
-SENSORS: tuple[tuple[str, str, str | None, SensorDeviceClass | None, SensorStateClass | None], ...] = (
-    ("last_update", "Son güncelleme", None, SensorDeviceClass.TIMESTAMP, None),
-    ("mileage", "Kilometre", UnitOfLength.KILOMETERS, SensorDeviceClass.DISTANCE, SensorStateClass.TOTAL_INCREASING),
-    ("battery", "Şarj yüzdesi", PERCENTAGE, SensorDeviceClass.BATTERY, SensorStateClass.MEASUREMENT),
-    ("range", "Menzil", UnitOfLength.KILOMETERS, SensorDeviceClass.DISTANCE, SensorStateClass.MEASUREMENT),
-    ("exterior_temperature", "Dış sıcaklık", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT),
-    ("tire_pressure_fl", "Lastik sol ön", UnitOfPressure.KPA, SensorDeviceClass.PRESSURE, SensorStateClass.MEASUREMENT),
-    ("tire_pressure_fr", "Lastik sağ ön", UnitOfPressure.KPA, SensorDeviceClass.PRESSURE, SensorStateClass.MEASUREMENT),
-    ("tire_pressure_rl", "Lastik sol arka", UnitOfPressure.KPA, SensorDeviceClass.PRESSURE, SensorStateClass.MEASUREMENT),
-    ("tire_pressure_rr", "Lastik sağ arka", UnitOfPressure.KPA, SensorDeviceClass.PRESSURE, SensorStateClass.MEASUREMENT),
-    ("charging_status", "Şarj durumu", None, None, None),
-    ("battery_voltage", "Batarya voltaj", UnitOfElectricPotential.VOLT, SensorDeviceClass.VOLTAGE, SensorStateClass.MEASUREMENT),
-    ("battery_current", "Batarya akım", UnitOfElectricCurrent.AMPERE, SensorDeviceClass.CURRENT, SensorStateClass.MEASUREMENT),
-    ("battery_charging_power", "Batarya gücü", UnitOfPower.KILO_WATT, SensorDeviceClass.POWER, SensorStateClass.MEASUREMENT),
-    ("station_dc_current", "İstasyon akımı", UnitOfElectricCurrent.AMPERE, SensorDeviceClass.CURRENT, SensorStateClass.MEASUREMENT),
-    ("station_dc_power", "İstasyon gücü", UnitOfPower.KILO_WATT, SensorDeviceClass.POWER, SensorStateClass.MEASUREMENT),
-    ("ac_voltage", "AC voltaj", UnitOfElectricPotential.VOLT, SensorDeviceClass.VOLTAGE, SensorStateClass.MEASUREMENT),
-    ("ac_current", "AC akım", UnitOfElectricCurrent.AMPERE, SensorDeviceClass.CURRENT, SensorStateClass.MEASUREMENT),
-    ("ac_charging_power", "AC şarj gücü", UnitOfPower.KILO_WATT, SensorDeviceClass.POWER, SensorStateClass.MEASUREMENT),
+# key, name, unit, device_class, state_class, suggested_display_precision
+SENSORS: tuple[
+    tuple[str, str, str | None, SensorDeviceClass | None, SensorStateClass | None, int | None],
+    ...,
+] = (
+    ("last_update", "Son güncelleme", None, SensorDeviceClass.TIMESTAMP, None, None),
+    ("mileage", "Kilometre", UnitOfLength.KILOMETERS, SensorDeviceClass.DISTANCE, SensorStateClass.TOTAL_INCREASING, 0),
+    ("battery", "Şarj yüzdesi", PERCENTAGE, SensorDeviceClass.BATTERY, SensorStateClass.MEASUREMENT, 1),
+    ("range", "Menzil", UnitOfLength.KILOMETERS, SensorDeviceClass.DISTANCE, SensorStateClass.MEASUREMENT, 0),
+    ("exterior_temperature", "Dış sıcaklık", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, 0),
+    ("tire_pressure_fl", "Lastik sol ön", UnitOfPressure.KPA, SensorDeviceClass.PRESSURE, SensorStateClass.MEASUREMENT, 0),
+    ("tire_pressure_fr", "Lastik sağ ön", UnitOfPressure.KPA, SensorDeviceClass.PRESSURE, SensorStateClass.MEASUREMENT, 0),
+    ("tire_pressure_rl", "Lastik sol arka", UnitOfPressure.KPA, SensorDeviceClass.PRESSURE, SensorStateClass.MEASUREMENT, 0),
+    ("tire_pressure_rr", "Lastik sağ arka", UnitOfPressure.KPA, SensorDeviceClass.PRESSURE, SensorStateClass.MEASUREMENT, 0),
+    ("charging_status", "Şarj durumu", None, None, None, None),
+    ("charge_remaining", "Kalan şarj süresi", UnitOfTime.MINUTES, SensorDeviceClass.DURATION, SensorStateClass.MEASUREMENT, 0),
+    ("battery_voltage", "Batarya voltaj", UnitOfElectricPotential.VOLT, SensorDeviceClass.VOLTAGE, SensorStateClass.MEASUREMENT, None),
+    ("battery_current", "Batarya akım", UnitOfElectricCurrent.AMPERE, SensorDeviceClass.CURRENT, SensorStateClass.MEASUREMENT, None),
+    ("battery_charging_power", "Batarya gücü", UnitOfPower.KILO_WATT, SensorDeviceClass.POWER, SensorStateClass.MEASUREMENT, None),
+    ("station_dc_current", "İstasyon akımı", UnitOfElectricCurrent.AMPERE, SensorDeviceClass.CURRENT, SensorStateClass.MEASUREMENT, None),
+    ("station_dc_power", "İstasyon gücü", UnitOfPower.KILO_WATT, SensorDeviceClass.POWER, SensorStateClass.MEASUREMENT, None),
+    ("ac_voltage", "AC voltaj", UnitOfElectricPotential.VOLT, SensorDeviceClass.VOLTAGE, SensorStateClass.MEASUREMENT, None),
+    ("ac_current", "AC akım", UnitOfElectricCurrent.AMPERE, SensorDeviceClass.CURRENT, SensorStateClass.MEASUREMENT, None),
+    ("ac_charging_power", "AC şarj gücü", UnitOfPower.KILO_WATT, SensorDeviceClass.POWER, SensorStateClass.MEASUREMENT, None),
 )
 
 
@@ -73,6 +78,7 @@ class Mg4Sensor(RestoreSensor):
         unit,
         device_class,
         state_class,
+        precision: int | None,
     ) -> None:
         self.hass = hass
         self._entry = entry
@@ -82,6 +88,7 @@ class Mg4Sensor(RestoreSensor):
         self._attr_native_unit_of_measurement = unit
         self._attr_device_class = device_class
         self._attr_state_class = state_class
+        self._attr_suggested_display_precision = precision
         self._attr_device_info = bridge_device(prefix, device_name)
         self._attr_translation_key = key
 
@@ -105,6 +112,8 @@ class Mg4Sensor(RestoreSensor):
             return False
         if self._key in ("station_dc_current", "station_dc_power"):
             return data.get("charging_status") == "DC" and self._key in data
+        if self._key == "charge_remaining":
+            return data.get("charging_status") in ("AC", "DC") and self._key in data
         return self._key in data
 
     async def async_added_to_hass(self) -> None:

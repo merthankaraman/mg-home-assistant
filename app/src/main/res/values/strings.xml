@@ -129,6 +129,7 @@
     <string name="preview_odometer">Toplam kilometre: %1$s\n</string>
     <string name="preview_exterior">Dış sıcaklık: %1$s\n</string>
     <string name="preview_charge">Şarj: %1$s\n</string>
+    <string name="preview_charge_remaining">Kalan süre: %1$s\n</string>
     <string name="preview_yes">evet</string>
     <string name="preview_no">hayır</string>
     <string name="preview_ac">AC: %1$s / %2$s\n</string>
@@ -152,6 +153,7 @@
     <string name="fmt_v">%1$s V</string>
     <string name="fmt_a">%1$s A</string>
     <string name="fmt_kpa">%1$s kPa</string>
+    <string name="fmt_min">%1$s dk</string>
     <string name="fmt_gps">%1$.5f, %2$.5f</string>
     <string name="fmt_gps_acc">%1$.5f, %2$.5f  (±%3$.0f m)</string>
     <string name="charge_unplugged">prizde değil</string>
@@ -172,6 +174,7 @@
     <string name="ha_name_tire_rl">Lastik sol arka</string>
     <string name="ha_name_tire_rr">Lastik sağ arka</string>
     <string name="ha_name_charging_status">Şarj durumu</string>
+    <string name="ha_name_charge_remaining">Kalan şarj süresi</string>
     <string name="ha_name_ac_voltage">AC voltaj</string>
     <string name="ha_name_ac_current">AC akım</string>
     <string name="ha_name_ac_charging_power">AC şarj gücü</string>

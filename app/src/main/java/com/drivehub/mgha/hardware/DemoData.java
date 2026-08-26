@@ -32,6 +32,7 @@ public final class DemoData {
             s.stationDcCurrentA = 125f + wave;
             s.stationDcPowerKw = (s.batteryVoltageV * s.stationDcCurrentA) / 1000f;
             s.dcChargingPowerKw = Math.abs(s.batteryVoltageV * s.batteryCurrentA) / 1000f;
+            s.chargeRemainingMin = 45 - wave * 2;
         } else {
             s.chargeStatus = 1;
             s.acVoltageV = 230f + wave * 0.4f;
@@ -39,6 +40,7 @@ public final class DemoData {
             s.batteryCurrentA = -18.5f - wave * 0.2f;
             s.acChargingPowerKw = (s.acVoltageV * s.acCurrentA) / 1000f;
             s.dcChargingPowerKw = Math.abs(s.batteryVoltageV * s.batteryCurrentA) / 1000f;
+            s.chargeRemainingMin = 820 - wave * 5;
         }
         // İstanbul civarı, hafif kayma
         s.latitude = 41.0082 + wave * 0.00025;

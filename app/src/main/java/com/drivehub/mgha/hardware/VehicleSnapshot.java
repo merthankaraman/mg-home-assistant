@@ -30,6 +30,8 @@ public class VehicleSnapshot {
 
     public boolean charging;
     public int chargeStatus = -1;
+    /** Kalan şarj süresi (dakika); yalnız AC/DC şarjda dolu. */
+    public int chargeRemainingMin = -1;
     public float acVoltageV = Float.NaN;
     public float acCurrentA = Float.NaN;
     public float acChargingPowerKw = Float.NaN;
@@ -53,6 +55,10 @@ public class VehicleSnapshot {
         sb.append(ctx.getString(R.string.preview_exterior, fmtInt(ctx, exteriorTempC, R.string.fmt_celsius)));
         sb.append('\n');
         sb.append(ctx.getString(R.string.preview_charge, chargeLabel(ctx, chargeStatus)));
+        if (chargeStatus == 1 || chargeStatus == 10) {
+            sb.append(ctx.getString(R.string.preview_charge_remaining,
+                    fmtInt(ctx, chargeRemainingMin, R.string.fmt_min)));
+        }
         if (chargeStatus == 1) {
             sb.append(ctx.getString(R.string.preview_ac,
                     fmt(ctx, acVoltageV, R.string.fmt_v),

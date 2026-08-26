@@ -129,6 +129,7 @@
     <string name="preview_odometer">Odometer: %1$s\n</string>
     <string name="preview_exterior">Exterior temp: %1$s\n</string>
     <string name="preview_charge">Charging: %1$s\n</string>
+    <string name="preview_charge_remaining">Remaining: %1$s\n</string>
     <string name="preview_yes">yes</string>
     <string name="preview_no">no</string>
     <string name="preview_ac">AC: %1$s / %2$s\n</string>
@@ -152,6 +153,7 @@
     <string name="fmt_v">%1$s V</string>
     <string name="fmt_a">%1$s A</string>
     <string name="fmt_kpa">%1$s kPa</string>
+    <string name="fmt_min">%1$s min</string>
     <string name="fmt_gps">%1$.5f, %2$.5f</string>
     <string name="fmt_gps_acc">%1$.5f, %2$.5f  (±%3$.0f m)</string>
     <string name="charge_unplugged">unplugged</string>
@@ -172,6 +174,7 @@
     <string name="ha_name_tire_rl">Tire rear left</string>
     <string name="ha_name_tire_rr">Tire rear right</string>
     <string name="ha_name_charging_status">Charging status</string>
+    <string name="ha_name_charge_remaining">Charge remaining</string>
     <string name="ha_name_ac_voltage">AC voltage</string>
     <string name="ha_name_ac_current">AC current</string>
     <string name="ha_name_ac_charging_power">AC charge power</string>
