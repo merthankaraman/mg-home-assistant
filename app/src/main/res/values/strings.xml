@@ -231,5 +231,7 @@
     <string name="ota_action_retry_download">Tekrar dene</string>
     <string name="ota_action_install_update">Kur</string>
     <string name="ota_dialog_install_failed_message">Kurulum açılamadı (%1$s). İndirilenler klasörüne bak.</string>
+    <string name="ota_install_success">Güncelleme kuruldu</string>
+    <string name="ota_install_failed_status">Kurulum başarısız: %1$s</string>
     <string name="ota_toast_checking">Güncelleme kontrol ediliyor…</string>
 </resources>

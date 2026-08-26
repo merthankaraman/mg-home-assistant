@@ -231,5 +231,7 @@
     <string name="ota_action_retry_download">Retry</string>
     <string name="ota_action_install_update">Install</string>
     <string name="ota_dialog_install_failed_message">Could not start install (%1$s). Check Downloads.</string>
+    <string name="ota_install_success">Update installed</string>
+    <string name="ota_install_failed_status">Install failed: %1$s</string>
     <string name="ota_toast_checking">Checking for updates…</string>
 </resources>

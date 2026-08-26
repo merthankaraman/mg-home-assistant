@@ -67,6 +67,14 @@
         </provider>
 
         <receiver
+            android:name=".ota.OtaInstallResultReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.drivehub.mgha.OTA_INSTALL_RESULT" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
             android:name=".ota.OtaPackageReplacedReceiver"
             android:exported="true">
             <intent-filter>
