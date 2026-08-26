@@ -131,11 +131,22 @@ public class MainActivity extends AppCompatActivity {
         ui.postDelayed(this::refreshLocalPreview, 400);
     }
 
+    /** Açılışta başlat açıksa ve ayar kayıtlıysa servisi kaldır (boot geçmiş olsa bile). */
+    private void maybeAutoStartService() {
+        if (BridgeStatus.running) return;
+        if (!HaSettings.autoStart(this)) return;
+        if (!HaSettings.isConfigured(this)) return;
+        ContextCompat.startForegroundService(this, new Intent(this, HaBridgeService.class));
+        ui.removeCallbacks(statusPoll);
+        ui.post(statusPoll);
+    }
+
     @Override
     protected void onStart() {
         super.onStart();
         IntentFilter f = new IntentFilter(HaBridgeService.ACTION_STATUS);
         ContextCompat.registerReceiver(this, statusReceiver, f, ContextCompat.RECEIVER_NOT_EXPORTED);
+        maybeAutoStartService();
         refreshStatus();
         refreshLocalPreview();
         ui.removeCallbacks(statusPoll);

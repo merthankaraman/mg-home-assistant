@@ -242,6 +242,7 @@ public class HaBridgeService extends Service {
             broadcastStatus();
             if (!shuttingDown && worker != null) {
                 long delay = nextDelayMs > 0 ? nextDelayMs : HaSettings.intervalMs(this);
+                worker.removeCallbacks(tickRunnable);
                 worker.postDelayed(tickRunnable, delay);
             }
         }
@@ -301,8 +302,18 @@ public class HaBridgeService extends Service {
     }
 
     private void scheduleTickSoon(String reason) {
-        Log.i(TAG, "network " + reason + " → tick");
         if (worker == null) return;
+        long interval = HaSettings.intervalMs(this);
+        long last = BridgeStatus.lastSendAtMs;
+        if (BridgeStatus.lastSendOk && last > 0) {
+            long since = System.currentTimeMillis() - last;
+            if (since < interval) {
+                Log.i(TAG, "network " + reason + " yok sayıldı (aralık "
+                        + ((interval - since) / 1000L) + "s kaldı)");
+                return;
+            }
+        }
+        Log.i(TAG, "network " + reason + " → tick");
         worker.removeCallbacks(tickRunnable);
         worker.post(tickRunnable);
     }
