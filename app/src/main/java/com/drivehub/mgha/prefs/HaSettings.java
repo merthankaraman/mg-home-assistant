@@ -17,6 +17,7 @@ public final class HaSettings {
     public static final String KEY_WIFI_ONLY = "wifi_only";
     public static final String KEY_INSECURE = "allow_insecure_ssl";
     public static final String KEY_AUTOSTART = "autostart";
+    public static final String KEY_WIFI_ON_BOOT = "wifi_on_boot";
     public static final String KEY_DEMO = "demo_mode";
 
     private HaSettings() {}
@@ -64,6 +65,11 @@ public final class HaSettings {
         return prefs(ctx).getBoolean(KEY_AUTOSTART, true);
     }
 
+    /** Boot / servis başlangıcında WiFi radyosunu aç. Varsayılan: araçta açık. */
+    public static boolean wifiOnBoot(Context ctx) {
+        return prefs(ctx).getBoolean(KEY_WIFI_ON_BOOT, !WifiHelper.isSim());
+    }
+
     public static boolean demoMode(Context ctx) {
         return prefs(ctx).getBoolean(KEY_DEMO, false);
     }
@@ -77,7 +83,8 @@ public final class HaSettings {
     }
 
     public static void save(Context ctx, String url, String token, String prefix,
-                            int intervalMin, boolean wifiOnly, boolean insecure, boolean autoStart) {
+                            int intervalMin, boolean wifiOnly, boolean insecure,
+                            boolean autoStart, boolean wifiOnBoot) {
         prefs(ctx).edit()
                 .putString(KEY_URL, url == null ? "" : url.trim())
                 .putString(KEY_TOKEN, token == null ? "" : token.trim())
@@ -86,6 +93,7 @@ public final class HaSettings {
                 .putBoolean(KEY_WIFI_ONLY, wifiOnly)
                 .putBoolean(KEY_INSECURE, insecure)
                 .putBoolean(KEY_AUTOSTART, autoStart)
+                .putBoolean(KEY_WIFI_ON_BOOT, wifiOnBoot)
                 .apply();
     }
 
@@ -98,7 +106,8 @@ public final class HaSettings {
                 o.optInt("interval", 1),
                 o.optBoolean("wifiOnly", !WifiHelper.isSim()),
                 o.optBoolean("insecure", false),
-                o.optBoolean("autoStart", true));
+                o.optBoolean("autoStart", true),
+                o.optBoolean("wifiOnBoot", !WifiHelper.isSim()));
         return true;
     }
 

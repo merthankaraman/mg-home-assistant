@@ -4,6 +4,8 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
+import android.net.wifi.WifiManager;
+import android.util.Log;
 
 import com.drivehub.mgha.BuildConfig;
 import com.drivehub.mgha.R;
@@ -13,6 +15,8 @@ import com.drivehub.mgha.R;
  * {@code car} varyantında ayardaki “Sadece WiFi” geçerli.
  */
 public final class WifiHelper {
+    private static final String TAG = "MGHA_WIFI";
+
     private WifiHelper() {}
 
     public static boolean hasWifiInternet(Context ctx) {
@@ -44,6 +48,32 @@ public final class WifiHelper {
             return hasWifiInternet(ctx);
         }
         return hasAnyInternet(ctx);
+    }
+
+    /**
+     * Radyoyu açar (kayıtlı ağa bağlanması sisteme kalır).
+     * System / platform imzalı uygulamada setWifiEnabled genelde çalışır.
+     */
+    @SuppressWarnings("deprecation")
+    public static boolean ensureWifiEnabled(Context ctx) {
+        try {
+            WifiManager wm = (WifiManager) ctx.getApplicationContext()
+                    .getSystemService(Context.WIFI_SERVICE);
+            if (wm == null) {
+                Log.w(TAG, "WifiManager yok");
+                return false;
+            }
+            if (wm.isWifiEnabled()) {
+                Log.i(TAG, "WiFi zaten açık");
+                return true;
+            }
+            boolean ok = wm.setWifiEnabled(true);
+            Log.i(TAG, "setWifiEnabled(true) → " + ok);
+            return ok;
+        } catch (Throwable t) {
+            Log.e(TAG, "WiFi açılamadı: " + t.getMessage());
+            return false;
+        }
     }
 
     /** Flavor-dependent; IDE may warn "always true/false" for the active variant. */

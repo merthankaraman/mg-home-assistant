@@ -69,6 +69,9 @@ public class HaBridgeService extends Service {
         VehicleReader.init(this);
         VehicleReader.ensureReady(this);
         VehicleReader.startGpsUpdates(this);
+        if (HaSettings.wifiOnBoot(this)) {
+            WifiHelper.ensureWifiEnabled(this);
+        }
         BridgeStatus.running = true;
         BridgeStatus.lastMessage = getString(R.string.msg_service_started);
         registerNetworkCallback();

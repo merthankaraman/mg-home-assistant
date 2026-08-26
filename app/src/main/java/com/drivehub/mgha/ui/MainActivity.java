@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private CheckBox wifiOnlyView;
     private CheckBox insecureView;
     private CheckBox autoStartView;
+    private CheckBox wifiOnBootView;
     private TextView statusView;
     private TextView previewView;
     private Button startStopBtn;
@@ -95,6 +96,7 @@ public class MainActivity extends AppCompatActivity {
         wifiOnlyView = findViewById(R.id.check_wifi_only);
         insecureView = findViewById(R.id.check_insecure);
         autoStartView = findViewById(R.id.check_autostart);
+        wifiOnBootView = findViewById(R.id.check_wifi_on_boot);
         statusView = findViewById(R.id.text_status);
         previewView = findViewById(R.id.text_preview);
         startStopBtn = findViewById(R.id.btn_start_stop);
@@ -169,6 +171,7 @@ public class MainActivity extends AppCompatActivity {
         wifiOnlyView.setChecked(HaSettings.wifiOnly(this));
         insecureView.setChecked(HaSettings.allowInsecureSsl(this));
         autoStartView.setChecked(HaSettings.autoStart(this));
+        wifiOnBootView.setChecked(HaSettings.wifiOnBoot(this));
     }
 
     private void requestNotifyPermission() {
@@ -220,7 +223,8 @@ public class MainActivity extends AppCompatActivity {
                 interval,
                 wifiOnlyView.isChecked(),
                 insecureView.isChecked(),
-                autoStartView.isChecked());
+                autoStartView.isChecked(),
+                wifiOnBootView.isChecked());
         Toast.makeText(this, R.string.toast_saved, Toast.LENGTH_SHORT).show();
         refreshStatus();
     }

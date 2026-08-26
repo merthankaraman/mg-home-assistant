@@ -205,6 +205,14 @@
             android:text="@string/check_autostart"
             android:textColor="@color/text" />
 
+        <CheckBox
+            android:id="@+id/check_wifi_on_boot"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="@string/check_wifi_on_boot"
+            android:textColor="@color/text" />
+
         <LinearLayout
             style="?android:attr/buttonBarStyle"
             android:layout_width="match_parent"

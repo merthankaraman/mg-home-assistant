@@ -29,6 +29,7 @@
     <string name="check_wifi_only">Send only when on Wi‑Fi</string>
     <string name="check_insecure_ssl">Accept self-signed SSL</string>
     <string name="check_autostart">Start service on boot</string>
+    <string name="check_wifi_on_boot">Enable Wi‑Fi on boot</string>
     <string name="btn_save">Save</string>
     <string name="btn_ha_test">HA test</string>
     <string name="btn_service_start">Start service</string>
