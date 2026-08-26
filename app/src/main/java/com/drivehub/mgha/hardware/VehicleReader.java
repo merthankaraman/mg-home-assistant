@@ -92,6 +92,10 @@ public final class VehicleReader {
             return DemoData.create();
         }
 
+        if (sAppContext != null && !WifiHelper.isSim()) {
+            ensureReady(sAppContext);
+        }
+
         VehicleSnapshot s = new VehicleSnapshot();
         s.capturedAtMs = System.currentTimeMillis();
         s.carConnected = sCarPropertyManager != null;
@@ -107,6 +111,7 @@ public final class VehicleReader {
         s.tireKpaRr = getInt(PROP_TIRE_PRESSURE_RR);
 
         s.chargeStatus = firstInt(getInt(PROP_CHG_STATUS), bmsInt(PROP_CHG_STATUS));
+        // Dort: batarya/AC değerleri BMS callback cache öncelikli
         s.batteryVoltageV = firstFloat(bmsFloat(PROP_BATT_VOLT), getFloat(PROP_BATT_VOLT));
         s.batteryCurrentA = firstFloat(bmsFloat(PROP_CHR_AMP_ACT), getFloat(PROP_CHR_AMP_ACT));
         s.stationDcCurrentA = firstFloat(bmsFloat(PROP_CHR_AMP_EXP), getFloat(PROP_CHR_AMP_EXP));
@@ -120,7 +125,6 @@ public final class VehicleReader {
         }
         if (!Float.isNaN(s.batteryVoltageV) && !Float.isNaN(s.stationDcCurrentA)) {
             float stationKw = (s.batteryVoltageV * s.stationDcCurrentA) / 1000f;
-            // Dort ile aynı: absürd istasyon teklifi yok say
             if (Math.abs(stationKw) <= 300f) {
                 s.stationDcPowerKw = stationKw;
             }
@@ -129,6 +133,14 @@ public final class VehicleReader {
         s.charging = isCharging(s.chargeStatus, s.acCurrentA, s.batteryCurrentA,
                 s.batteryVoltageV, speedKmh);
         fillGps(s);
+
+        Log.i(TAG, "read cpm=" + (sCarPropertyManager != null)
+                + " soc=" + s.socPercent
+                + " range=" + s.rangeKm
+                + " km=" + s.odometerKm
+                + " chg=" + s.chargeStatus
+                + " tires=" + s.tireKpaFl + "/" + s.tireKpaFr + "/" + s.tireKpaRl + "/" + s.tireKpaRr
+                + " bmsCache=" + sBmsCache.size());
         return s;
     }
 
@@ -167,59 +179,136 @@ public final class VehicleReader {
         sCarBindAttempted = true;
         try {
             Class<?> carClass = Class.forName("android" + ".car.Car");
-            Method createCar = null;
+            Log.i(TAG, "android.car.Car bulundu");
+
+            Method createCarCtx = null;
+            Method createCarHandler = null;
+            Method createCarSc = null;
             try {
-                createCar = carClass.getMethod("createCar", Context.class);
+                createCarCtx = carClass.getMethod("createCar", Context.class);
             } catch (NoSuchMethodException ignored) {}
+            try {
+                createCarHandler = carClass.getMethod("createCar", Context.class, Handler.class);
+            } catch (NoSuchMethodException ignored) {}
+            try {
+                createCarSc = carClass.getMethod("createCar", Context.class, ServiceConnection.class);
+            } catch (NoSuchMethodException ignored) {}
+
             Object car = null;
-            if (createCar != null) {
+            if (createCarCtx != null) {
                 try {
-                    car = createCar.invoke(null, context);
+                    car = createCarCtx.invoke(null, context);
+                    if (car != null) Log.i(TAG, "createCar(Context) OK");
                 } catch (Exception e) {
-                    Log.w(TAG, "createCar(Context) hata: " + e.getMessage());
+                    Log.w(TAG, "createCar(Context): " + e.getMessage());
+                }
+            }
+            if (car == null && createCarHandler != null) {
+                try {
+                    car = createCarHandler.invoke(null, context, new Handler(Looper.getMainLooper()));
+                    if (car != null) Log.i(TAG, "createCar(Context,Handler) OK");
+                } catch (Exception e) {
+                    Log.w(TAG, "createCar(Context,Handler): " + e.getMessage());
+                }
+            }
+            if (car == null && createCarSc != null) {
+                try {
+                    ServiceConnection sc = new ServiceConnection() {
+                        @Override
+                        public void onServiceConnected(ComponentName name, IBinder service) {
+                            Log.i(TAG, "Car ServiceConnection bağlı: " + name);
+                            tryGetManagers(carClass);
+                        }
+
+                        @Override
+                        public void onServiceDisconnected(ComponentName name) {
+                            Log.w(TAG, "Car bağlantısı kesildi");
+                            sCarPropertyManager = null;
+                        }
+                    };
+                    car = createCarSc.invoke(null, context, sc);
+                    if (car != null) Log.i(TAG, "createCar(Context,SC) — callback bekleniyor");
+                } catch (Exception e) {
+                    Log.w(TAG, "createCar(Context,SC): " + e.getMessage());
                 }
             }
             if (car == null) {
-                try {
-                    Method createH = carClass.getMethod("createCar", Context.class, Handler.class);
-                    car = createH.invoke(null, context, null);
-                } catch (Exception e) {
-                    Log.w(TAG, "createCar(Context,Handler) hata: " + e.getMessage());
-                }
-            }
-            if (car == null) {
-                Log.e(TAG, "Car.createCar başarısız");
+                Log.e(TAG, "Car.createCar başarısız — tüm yöntemler");
+                sCarBindAttempted = false; // sonra tekrar dene
                 return;
             }
             sCar = car;
             try {
                 Method connect = carClass.getMethod("connect");
                 connect.invoke(car);
+                Log.i(TAG, "car.connect() çağrıldı");
             } catch (NoSuchMethodException ignored) {
             } catch (Exception e) {
                 Log.w(TAG, "car.connect: " + e.getMessage());
             }
+
             boolean connected = false;
             try {
                 Method isConnected = carClass.getMethod("isConnected");
                 connected = Boolean.TRUE.equals(isConnected.invoke(car));
+                Log.i(TAG, "isConnected=" + connected);
             } catch (Exception ignored) {}
+
             if (connected) {
                 tryGetManagers(carClass);
             } else {
-                new Handler(Looper.getMainLooper()).postDelayed(() -> tryGetManagers(carClass), 500);
-                new Handler(Looper.getMainLooper()).postDelayed(() -> tryGetManagers(carClass), 2500);
+                Handler h = new Handler(Looper.getMainLooper());
+                h.postDelayed(() -> tryGetManagers(carClass), 500);
+                h.postDelayed(() -> tryGetManagers(carClass), 2500);
+                h.postDelayed(() -> tryGetManagers(carClass), 6000);
+                h.postDelayed(() -> tryGetManagers(carClass), 12000);
             }
         } catch (ClassNotFoundException e) {
             Log.e(TAG, "android.car.Car yok");
         } catch (Exception e) {
-            Log.e(TAG, "bindCarService: " + e.getMessage());
+            Log.e(TAG, "bindCarService: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            sCarBindAttempted = false;
+        }
+    }
+
+    /** Servis tick öncesi: CPM yoksa bağlanmayı yeniden dene. */
+    public static synchronized void ensureReady(Context context) {
+        if (context == null) return;
+        if (sAppContext == null) sAppContext = context.getApplicationContext();
+        if (WifiHelper.isSim()) return;
+        if (sCarPropertyManager != null) return;
+        if (!sCarBindAttempted) {
+            bindCarService(sAppContext);
+            bindSaicMapService(sAppContext);
+            return;
+        }
+        if (sCar != null) {
+            try {
+                Class<?> carClass = Class.forName("android" + ".car.Car");
+                tryGetManagers(carClass);
+            } catch (Exception e) {
+                Log.w(TAG, "ensureReady: " + e.getMessage());
+            }
+        } else {
+            sCarBindAttempted = false;
+            bindCarService(sAppContext);
         }
     }
 
     private static void tryGetManagers(Class<?> carClass) {
         if (sCar == null) return;
+        if (sCarPropertyManager != null) return;
         try {
+            try {
+                Method isConnected = carClass.getMethod("isConnected");
+                boolean connected = Boolean.TRUE.equals(isConnected.invoke(sCar));
+                Log.i(TAG, "tryGetManagers isConnected=" + connected);
+                if (!connected) {
+                    Log.w(TAG, "Car henüz bağlı değil — manager bekleniyor");
+                    return;
+                }
+            } catch (Exception ignored) {}
+
             Method getCarManager = carClass.getMethod("getCarManager", String.class);
             String propertyService = "property";
             try {
@@ -228,19 +317,23 @@ public final class VehicleReader {
             Object cpm = getCarManager.invoke(sCar, propertyService);
             if (cpm != null) {
                 sCarPropertyManager = cpm;
-                Log.i(TAG, "CarPropertyManager hazır");
+                Log.i(TAG, "CarPropertyManager hazır: " + cpm.getClass().getName());
+            } else {
+                Log.e(TAG, "CarPropertyManager null (izin yok?)");
             }
             try {
                 Object bms = getCarManager.invoke(sCar, "bms");
                 if (bms != null) {
                     registerBmsCallback(bms);
                     Log.i(TAG, "CarBMSManager hazır");
+                } else {
+                    Log.w(TAG, "CarBMSManager null");
                 }
             } catch (Exception e) {
                 Log.w(TAG, "BMS manager yok: " + e.getMessage());
             }
         } catch (Exception e) {
-            Log.e(TAG, "tryGetManagers: " + e.getMessage());
+            Log.e(TAG, "tryGetManagers: " + e.getClass().getSimpleName() + ": " + e.getMessage());
         }
     }
 
@@ -338,6 +431,8 @@ public final class VehicleReader {
         }
     }
 
+    private static final ConcurrentHashMap<Integer, Boolean> sLoggedPropErr = new ConcurrentHashMap<>();
+
     private static int getInt(int propId) {
         if (sCarPropertyManager == null) return -1;
         try {
@@ -348,6 +443,7 @@ public final class VehicleReader {
             Object v = cpv.getClass().getMethod("getValue").invoke(cpv);
             return v instanceof Number ? ((Number) v).intValue() : -1;
         } catch (Throwable t) {
+            logPropErrOnce(propId, t);
             return -1;
         }
     }
@@ -362,8 +458,17 @@ public final class VehicleReader {
             Object v = cpv.getClass().getMethod("getValue").invoke(cpv);
             return v instanceof Number ? ((Number) v).floatValue() : Float.NaN;
         } catch (Throwable t) {
+            logPropErrOnce(propId, t);
             return Float.NaN;
         }
+    }
+
+    private static void logPropErrOnce(int propId, Throwable t) {
+        if (sLoggedPropErr.putIfAbsent(propId, Boolean.TRUE) != null) return;
+        Throwable c = t instanceof java.lang.reflect.InvocationTargetException
+                ? ((java.lang.reflect.InvocationTargetException) t).getCause() : t;
+        Log.w(TAG, "prop 0x" + Integer.toHexString(propId) + " "
+                + (c != null ? c.getClass().getSimpleName() + ": " + c.getMessage() : String.valueOf(t)));
     }
 
     private static float bmsFloat(int propId) {

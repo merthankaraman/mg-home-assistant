@@ -65,6 +65,7 @@ public class HaBridgeService extends Service {
         worker = new Handler(workerThread.getLooper());
 
         VehicleReader.init(this);
+        VehicleReader.ensureReady(this);
         BridgeStatus.running = true;
         BridgeStatus.lastMessage = getString(R.string.msg_service_started);
         registerNetworkCallback();
@@ -125,6 +126,7 @@ public class HaBridgeService extends Service {
 
             boolean allowed = WifiHelper.canSend(this, HaSettings.wifiOnly(this));
             Log.i(TAG, "tick flavor=" + com.drivehub.mgha.BuildConfig.FLAVOR
+                    + " carOk=" + BridgeStatus.carOk
                     + " net=" + WifiHelper.describe(this)
                     + " any=" + anyNet + " wifi=" + wifi
                     + " demo=" + HaSettings.demoMode(this)
