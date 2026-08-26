@@ -20,6 +20,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -183,6 +184,7 @@ public class MainActivity extends AppCompatActivity {
     private void requestLocationPermission() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
+            VehicleReader.startGpsUpdates(this);
             return;
         }
         ActivityCompat.requestPermissions(this,
@@ -190,6 +192,20 @@ public class MainActivity extends AppCompatActivity {
                         Manifest.permission.ACCESS_FINE_LOCATION,
                         Manifest.permission.ACCESS_COARSE_LOCATION
                 }, 22);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 22) {
+            for (int r : grantResults) {
+                if (r == PackageManager.PERMISSION_GRANTED) {
+                    VehicleReader.startGpsUpdates(this);
+                    break;
+                }
+            }
+        }
     }
 
     private void saveSettings() {

@@ -108,9 +108,11 @@ public final class HaPublisher {
                 putNum(o, "station_dc_current", snap.stationDcCurrentA);
                 putNum(o, "station_dc_power", snap.stationDcPowerKw);
             }
-            putNum(o, "ac_voltage", snap.acVoltageV);
-            putNum(o, "ac_current", snap.acCurrentA);
-            putNum(o, "ac_charging_power", snap.acChargingPowerKw);
+            if (snap.chargeStatus == 1) {
+                putNum(o, "ac_voltage", snap.acVoltageV);
+                putNum(o, "ac_current", snap.acCurrentA);
+                putNum(o, "ac_charging_power", snap.acChargingPowerKw);
+            }
             if (!Double.isNaN(snap.latitude) && !Double.isNaN(snap.longitude)) {
                 o.put("latitude", snap.latitude);
                 o.put("longitude", snap.longitude);

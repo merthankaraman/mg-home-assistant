@@ -6,10 +6,12 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -50,7 +52,7 @@ public class HaBridgeService extends Service {
     public void onCreate() {
         super.onCreate();
         createChannel();
-        startForeground(NOTIF_ID, buildNotification(getString(R.string.notify_running)));
+        startFg(buildNotification(getString(R.string.notify_running)));
 
         PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
         if (pm != null) {
@@ -66,6 +68,7 @@ public class HaBridgeService extends Service {
 
         VehicleReader.init(this);
         VehicleReader.ensureReady(this);
+        VehicleReader.startGpsUpdates(this);
         BridgeStatus.running = true;
         BridgeStatus.lastMessage = getString(R.string.msg_service_started);
         registerNetworkCallback();
@@ -75,12 +78,25 @@ public class HaBridgeService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        startForeground(NOTIF_ID, buildNotification(BridgeStatus.lastMessage));
+        startFg(buildNotification(BridgeStatus.lastMessage));
+        VehicleReader.startGpsUpdates(this);
         if (intent != null && ACTION_TICK_NOW.equals(intent.getAction()) && worker != null) {
             worker.removeCallbacks(tickRunnable);
             worker.post(tickRunnable);
         }
         return START_STICKY;
+    }
+
+    private void startFg(Notification notification) {
+        if (Build.VERSION.SDK_INT >= 34) {
+            startForeground(
+                    NOTIF_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                            | ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION);
+        } else {
+            startForeground(NOTIF_ID, notification);
+        }
     }
 
     @Nullable

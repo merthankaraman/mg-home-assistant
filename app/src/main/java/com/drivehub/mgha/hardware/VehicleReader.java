@@ -1,16 +1,22 @@
 package com.drivehub.mgha.hardware;
 
+import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Parcel;
 import android.util.Log;
+
+import androidx.core.content.ContextCompat;
 
 import com.drivehub.mgha.net.WifiHelper;
 import com.drivehub.mgha.prefs.HaSettings;
@@ -55,6 +61,29 @@ public final class VehicleReader {
     private static boolean sCarBindAttempted;
     private static boolean sMapBindAttempted;
     private static IBinder sSaicMapBinder;
+    private static volatile Location sCachedGps;
+    private static boolean sGpsListening;
+    private static LocationManager sLocationManager;
+    private static final LocationListener sGpsListener = new LocationListener() {
+        @Override
+        public void onLocationChanged(Location location) {
+            if (location != null) {
+                sCachedGps = location;
+                Log.i(TAG, "GPS update " + location.getProvider()
+                        + " lat=" + location.getLatitude()
+                        + " lon=" + location.getLongitude());
+            }
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {}
+
+        @Override
+        public void onProviderEnabled(String provider) {}
+
+        @Override
+        public void onProviderDisabled(String provider) {}
+    };
 
     private static final ServiceConnection sMapConnection = new ServiceConnection() {
         @Override
@@ -81,10 +110,79 @@ public final class VehicleReader {
         }
         bindCarService(sAppContext);
         bindSaicMapService(sAppContext);
+        startGpsUpdates(sAppContext);
     }
 
     public static boolean isReady() {
         return sCarPropertyManager != null;
+    }
+
+    /** Konum izni sonradan verilince servisten çağrılabilir. */
+    public static synchronized void startGpsUpdates(Context context) {
+        if (context == null) return;
+        Context ctx = context.getApplicationContext();
+        if (sAppContext == null) sAppContext = ctx;
+        if (sGpsListening) return;
+        if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            Log.w(TAG, "GPS: konum izni yok");
+            return;
+        }
+        try {
+            LocationManager lm = (LocationManager) ctx.getSystemService(Context.LOCATION_SERVICE);
+            if (lm == null) {
+                Log.w(TAG, "GPS: LocationManager yok");
+                return;
+            }
+            sLocationManager = lm;
+            // En güncel last-known'u bir kez al
+            Location best = pickBestLastKnown(lm);
+            if (best != null) {
+                sCachedGps = best;
+                Log.i(TAG, "GPS lastKnown " + best.getProvider()
+                        + " lat=" + best.getLatitude() + " lon=" + best.getLongitude());
+            }
+            java.util.List<String> providers = lm.getProviders(true);
+            if (providers == null || providers.isEmpty()) {
+                Log.w(TAG, "GPS: açık provider yok");
+                return;
+            }
+            Handler main = new Handler(Looper.getMainLooper());
+            int started = 0;
+            for (String provider : providers) {
+                try {
+                    // 15 sn / 10 m — HA aralığıyla uyumlu, pili zorlamaz
+                    lm.requestLocationUpdates(provider, 15_000L, 10f, sGpsListener, main.getLooper());
+                    started++;
+                } catch (Throwable t) {
+                    Log.w(TAG, "GPS listen " + provider + ": " + t.getMessage());
+                }
+            }
+            sGpsListening = started > 0;
+            Log.i(TAG, "GPS listening providers=" + started + "/" + providers.size());
+        } catch (Throwable t) {
+            Log.w(TAG, "GPS start: " + t.getMessage());
+        }
+    }
+
+    private static Location pickBestLastKnown(LocationManager lm) {
+        Location best = null;
+        try {
+            java.util.List<String> providers = lm.getProviders(true);
+            if (providers == null) return null;
+            for (String provider : providers) {
+                Location loc = lm.getLastKnownLocation(provider);
+                if (loc == null) continue;
+                if (best == null || loc.getTime() > best.getTime()) {
+                    best = loc;
+                }
+            }
+        } catch (SecurityException e) {
+            Log.w(TAG, "GPS lastKnown izin: " + e.getMessage());
+        } catch (Throwable ignored) {}
+        return best;
     }
 
     public static VehicleSnapshot read() {
@@ -140,6 +238,7 @@ public final class VehicleReader {
                 + " km=" + s.odometerKm
                 + " chg=" + s.chargeStatus
                 + " tires=" + s.tireKpaFl + "/" + s.tireKpaFr + "/" + s.tireKpaRl + "/" + s.tireKpaRr
+                + " gps=" + (Double.isNaN(s.latitude) ? "none" : (s.latitude + "," + s.longitude))
                 + " bmsCache=" + sBmsCache.size());
         return s;
     }
@@ -147,12 +246,25 @@ public final class VehicleReader {
     private static void fillGps(VehicleSnapshot s) {
         Context ctx = sAppContext;
         if (ctx == null) return;
+        startGpsUpdates(ctx);
         try {
-            LocationManager lm = (LocationManager) ctx.getSystemService(Context.LOCATION_SERVICE);
-            if (lm == null) return;
-            Location loc = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            if (loc == null) loc = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-            if (loc == null) loc = lm.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+            Location loc = sCachedGps;
+            if (sLocationManager != null) {
+                Location last = pickBestLastKnown(sLocationManager);
+                if (last != null && (loc == null || last.getTime() > loc.getTime())) {
+                    loc = last;
+                    sCachedGps = last;
+                }
+            } else {
+                LocationManager lm = (LocationManager) ctx.getSystemService(Context.LOCATION_SERVICE);
+                if (lm != null) {
+                    Location last = pickBestLastKnown(lm);
+                    if (last != null) {
+                        loc = last;
+                        sCachedGps = last;
+                    }
+                }
+            }
             if (loc == null) return;
             s.latitude = loc.getLatitude();
             s.longitude = loc.getLongitude();
@@ -280,8 +392,10 @@ public final class VehicleReader {
         if (!sCarBindAttempted) {
             bindCarService(sAppContext);
             bindSaicMapService(sAppContext);
+            startGpsUpdates(sAppContext);
             return;
         }
+        startGpsUpdates(sAppContext);
         if (sCar != null) {
             try {
                 Class<?> carClass = Class.forName("android" + ".car.Car");

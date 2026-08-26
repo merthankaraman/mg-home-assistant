@@ -53,10 +53,12 @@ public class VehicleSnapshot {
         sb.append(ctx.getString(R.string.preview_exterior, fmtInt(ctx, exteriorTempC, R.string.fmt_celsius)));
         sb.append('\n');
         sb.append(ctx.getString(R.string.preview_charge, chargeLabel(ctx, chargeStatus)));
-        sb.append(ctx.getString(R.string.preview_ac,
-                fmt(ctx, acVoltageV, R.string.fmt_v),
-                fmt(ctx, acCurrentA, R.string.fmt_a)));
-        sb.append(ctx.getString(R.string.preview_ac_power, fmt(ctx, acChargingPowerKw, R.string.fmt_kw)));
+        if (chargeStatus == 1) {
+            sb.append(ctx.getString(R.string.preview_ac,
+                    fmt(ctx, acVoltageV, R.string.fmt_v),
+                    fmt(ctx, acCurrentA, R.string.fmt_a)));
+            sb.append(ctx.getString(R.string.preview_ac_power, fmt(ctx, acChargingPowerKw, R.string.fmt_kw)));
+        }
         sb.append(ctx.getString(R.string.preview_batt,
                 fmt(ctx, batteryVoltageV, R.string.fmt_v),
                 fmt(ctx, batteryCurrentA, R.string.fmt_a)));

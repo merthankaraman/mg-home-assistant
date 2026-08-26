@@ -39,7 +39,7 @@ SENSORS: tuple[tuple[str, str, str | None, SensorDeviceClass | None, SensorState
     ("charging_status", "Şarj durumu", None, None, None),
     ("battery_voltage", "Batarya voltaj", UnitOfElectricPotential.VOLT, SensorDeviceClass.VOLTAGE, SensorStateClass.MEASUREMENT),
     ("battery_current", "Batarya akım", UnitOfElectricCurrent.AMPERE, SensorDeviceClass.CURRENT, SensorStateClass.MEASUREMENT),
-    ("battery_charging_power", "Batarya şarj gücü", UnitOfPower.KILO_WATT, SensorDeviceClass.POWER, SensorStateClass.MEASUREMENT),
+    ("battery_charging_power", "Batarya gücü", UnitOfPower.KILO_WATT, SensorDeviceClass.POWER, SensorStateClass.MEASUREMENT),
     ("station_dc_current", "İstasyon akımı", UnitOfElectricCurrent.AMPERE, SensorDeviceClass.CURRENT, SensorStateClass.MEASUREMENT),
     ("station_dc_power", "İstasyon gücü", UnitOfPower.KILO_WATT, SensorDeviceClass.POWER, SensorStateClass.MEASUREMENT),
     ("ac_voltage", "AC voltaj", UnitOfElectricPotential.VOLT, SensorDeviceClass.VOLTAGE, SensorStateClass.MEASUREMENT),
