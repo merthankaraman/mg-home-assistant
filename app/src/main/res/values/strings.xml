@@ -220,7 +220,7 @@
     <string name="ota_progress_paused">İndirme %1$d%%\'de durakladı…</string>
     <string name="ota_progress_complete">İndirme tamam. Doğrulanıyor…</string>
     <string name="ota_progress_verifying">SHA-256 doğrulanıyor…</string>
-    <string name="ota_progress_verified">Doğrulama OK. APK İndirilenler klasöründe.</string>
+    <string name="ota_progress_verified">Doğrulama OK. Kurulum başlatılıyor…</string>
     <string name="ota_progress_integrity_failed">Doğrulama başarısız (%1$s).</string>
     <string name="ota_progress_failed_reason">İndirme başarısız (%1$s).</string>
     <string name="ota_progress_unavailable">İndirme durumu kullanılamıyor.</string>
@@ -229,6 +229,7 @@
     <string name="ota_action_close">Kapat</string>
     <string name="ota_action_download">İndir</string>
     <string name="ota_action_retry_download">Tekrar dene</string>
-    <string name="ota_action_install_update">İndirilenleri aç</string>
+    <string name="ota_action_install_update">Kur</string>
+    <string name="ota_dialog_install_failed_message">Kurulum açılamadı (%1$s). İndirilenler klasörüne bak.</string>
     <string name="ota_toast_checking">Güncelleme kontrol ediliyor…</string>
 </resources>

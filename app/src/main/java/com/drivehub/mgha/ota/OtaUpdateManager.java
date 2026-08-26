@@ -91,7 +91,9 @@ final class OtaUpdateManager {
                         ? String.format(Locale.US, "MG4_HA_%s.apk", info.latestVersion)
                         : info.assetFileName
         );
-        preparePublicDownloadFile(fileName);
+        File targetFile = preparePublicDownloadFile(fileName);
+        // Yeni indirmeden önce önceki sürüm APK’larını temizle (hedef hariç)
+        OtaCleanup.deleteOldApks(targetFile);
 
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(info.downloadUrl))
                 .setTitle("MG Home Assistant Update")

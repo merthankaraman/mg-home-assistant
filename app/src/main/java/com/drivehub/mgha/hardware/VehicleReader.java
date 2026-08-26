@@ -13,7 +13,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
-import android.os.Parcel;
 import android.util.Log;
 
 import androidx.core.content.ContextCompat;
@@ -32,6 +31,7 @@ public final class VehicleReader {
     private static final String TAG = "MGHA_HW";
 
     private static final int AREA_GLOBAL = 0x01000000;
+    private static final int AREA_HVAC = 0x75; // HVAC_ALL
 
     private static final int PROP_SPEED = 0x11600207;
     private static final int PROP_SOC = 0x2160F404;
@@ -47,11 +47,12 @@ public final class VehicleReader {
     private static final int PROP_TIRE_PRESSURE_FR = 0x21401554;
     private static final int PROP_TIRE_PRESSURE_RL = 0x21401555;
     private static final int PROP_TIRE_PRESSURE_RR = 0x21401556;
+    /** Dış ortam °C — AirConditionBinder.getOutCarTemp (area HVAC_ALL). */
+    private static final int PROP_OUT_CAR_TEMP = 0x15602511;
+    private static final float OUT_CAR_TEMP_INVALID = -10000f;
 
     private static final String SAIC_MAP_PACKAGE = "com.saicmotor.adapterservice";
     private static final String SAIC_MAP_SERVICE_CLASS = SAIC_MAP_PACKAGE + ".services.MapService";
-    private static final String SAIC_MAP_DESCRIPTOR = "com.saicmotor.adapterservice.IMapService";
-    private static final int TX_SAIC_MAP_GET_SENSOR_TEMPERATURE = 0x43;
 
     private static final ConcurrentHashMap<Integer, Object> sBmsCache = new ConcurrentHashMap<>();
 
@@ -201,7 +202,7 @@ public final class VehicleReader {
         s.socPercent = firstFloat(getFloat(PROP_SOC), bmsFloat(PROP_SOC));
         s.rangeKm = firstInt(getInt(PROP_RANGE), bmsInt(PROP_RANGE));
         s.odometerKm = getInt(PROP_TOTAL_MILEAGE);
-        s.exteriorTempC = getSensorTemperature();
+        s.exteriorTempC = readOutsideTempC();
 
         s.tireKpaFl = getInt(PROP_TIRE_PRESSURE_FL);
         s.tireKpaFr = getInt(PROP_TIRE_PRESSURE_FR);
@@ -238,6 +239,7 @@ public final class VehicleReader {
                 + " km=" + s.odometerKm
                 + " chg=" + s.chargeStatus
                 + " tires=" + s.tireKpaFl + "/" + s.tireKpaFr + "/" + s.tireKpaRl + "/" + s.tireKpaRr
+                + " outC=" + s.exteriorTempC
                 + " gps=" + (Double.isNaN(s.latitude) ? "none" : (s.latitude + "," + s.longitude))
                 + " bmsCache=" + sBmsCache.size());
         return s;
@@ -527,22 +529,14 @@ public final class VehicleReader {
         }
     }
 
-    private static int getSensorTemperature() {
-        IBinder b = sSaicMapBinder;
-        if (b == null) return -1;
-        Parcel data = Parcel.obtain();
-        Parcel reply = Parcel.obtain();
-        try {
-            data.writeInterfaceToken(SAIC_MAP_DESCRIPTOR);
-            if (!b.transact(TX_SAIC_MAP_GET_SENSOR_TEMPERATURE, data, reply, 0)) return -1;
-            reply.readException();
-            return reply.readInt();
-        } catch (Throwable t) {
+    /** Dış ortam sıcaklığı (°C). Map getSensorTemperature IMU sıcaklığıdır — kullanma. */
+    private static int readOutsideTempC() {
+        float v = getFloatArea(PROP_OUT_CAR_TEMP, AREA_HVAC);
+        if (Float.isNaN(v) || v <= OUT_CAR_TEMP_INVALID + 1f || v < -50f || v > 80f) {
+            Log.w(TAG, "outCarTemp geçersiz: " + v);
             return -1;
-        } finally {
-            data.recycle();
-            reply.recycle();
         }
+        return Math.round(v);
     }
 
     private static final ConcurrentHashMap<Integer, Boolean> sLoggedPropErr = new ConcurrentHashMap<>();
@@ -563,11 +557,15 @@ public final class VehicleReader {
     }
 
     private static float getFloat(int propId) {
+        return getFloatArea(propId, AREA_GLOBAL);
+    }
+
+    private static float getFloatArea(int propId, int area) {
         if (sCarPropertyManager == null) return Float.NaN;
         try {
             Method getProperty = sCarPropertyManager.getClass()
                     .getMethod("getProperty", Class.class, int.class, int.class);
-            Object cpv = getProperty.invoke(sCarPropertyManager, Float.class, propId, AREA_GLOBAL);
+            Object cpv = getProperty.invoke(sCarPropertyManager, Float.class, propId, area);
             if (cpv == null) return Float.NaN;
             Object v = cpv.getClass().getMethod("getValue").invoke(cpv);
             return v instanceof Number ? ((Number) v).floatValue() : Float.NaN;

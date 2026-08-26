@@ -1,0 +1,68 @@
+package com.drivehub.mgha.ota;
+
+import android.content.Context;
+import android.os.Environment;
+import android.util.Log;
+
+import java.io.File;
+import java.io.FilenameFilter;
+import java.util.Locale;
+
+/** İndirilenler’deki eski MG4_HA_*.apk dosyalarını temizler. */
+final class OtaCleanup {
+
+    private static final String TAG = "MGHA_OTA";
+    private static final FilenameFilter APK_FILTER = (dir, name) -> {
+        if (name == null) return false;
+        String lower = name.toLowerCase(Locale.US);
+        return lower.startsWith("mg4_ha_") && (lower.endsWith(".apk") || lower.endsWith(".apk.sha256"));
+    };
+
+    private OtaCleanup() {
+    }
+
+    /** Tüm OTA APK / hash dosyalarını sil (kurulum sonrası). */
+    static void deleteAllOtaApks(Context context) {
+        deleteOldApks(null);
+    }
+
+    /**
+     * Eski OTA paketlerini sil.
+     * @param keep silinmeyecek dosya (şu an indirilen / kurulan); null = hepsini sil
+     */
+    static void deleteOldApks(File keep) {
+        File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        if (dir == null || !dir.isDirectory()) {
+            Log.w(TAG, "cleanup: Downloads yok");
+            return;
+        }
+        File[] files = dir.listFiles(APK_FILTER);
+        if (files == null || files.length == 0) return;
+
+        String keepPath = null;
+        try {
+            if (keep != null) keepPath = keep.getCanonicalPath();
+        } catch (Exception ignored) {
+            if (keep != null) keepPath = keep.getAbsolutePath();
+        }
+
+        int deleted = 0;
+        for (File f : files) {
+            if (f == null || !f.isFile()) continue;
+            try {
+                if (keepPath != null && keepPath.equals(f.getCanonicalPath())) continue;
+            } catch (Exception e) {
+                if (keepPath != null && keepPath.equals(f.getAbsolutePath())) continue;
+            }
+            if (f.delete()) {
+                deleted++;
+                Log.i(TAG, "eski APK silindi: " + f.getName());
+            } else {
+                Log.w(TAG, "silinemedi: " + f.getName());
+            }
+        }
+        if (deleted > 0) {
+            Log.i(TAG, "OTA cleanup: " + deleted + " dosya silindi");
+        }
+    }
+}

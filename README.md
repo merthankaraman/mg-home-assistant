@@ -57,7 +57,7 @@ Uygulama `merthankaraman/mg-home-assistant` Releases API’sinden güncelleme ç
 
 1. `sign_and_install_release.bat` → `tools/releases/MG4_HA_<sürüm>.apk` + `.sha256`
 2. `publish_github_release.bat` → GitHub Release’e yükler
-3. Arabada **Güncelleme kontrol et** → indir → SHA-256 doğrula → **İndirilenler**’den kur
+3. Arabada **Güncelleme kontrol et** → indir → SHA-256 → sistem kurulum ekranı açılır (**Kur**)
 
 Release’te hem `.apk` hem `MG4_HA_x.y.apk.sha256` olmalı; aksi halde indirme engellenir.
 

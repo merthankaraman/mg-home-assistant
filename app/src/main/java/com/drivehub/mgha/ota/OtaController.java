@@ -8,6 +8,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -20,10 +21,11 @@ import androidx.core.content.ContextCompat;
 
 import com.drivehub.mgha.R;
 
+import java.io.File;
 import java.util.Locale;
 
 /**
- * GitHub Releases üzerinden OTA: kontrol → indir → SHA-256 doğrula → İndirilenler.
+ * GitHub Releases üzerinden OTA: kontrol → indir → SHA-256 → kurulum ekranı.
  */
 public final class OtaController {
 
@@ -166,7 +168,7 @@ public final class OtaController {
                 activity,
                 activity.getString(R.string.ota_dialog_download_started_message, info.latestVersion),
                 () -> retryDownload(downloadId),
-                this::openDownloadsFolder
+                () -> installDownloadedApk(downloadId)
         );
         progressDialog = handle.dialog;
         progressDialog.setOnDismissListener(d -> stopProgressWatcher());
@@ -296,7 +298,29 @@ public final class OtaController {
                     if (installButton != null) {
                         installButton.setVisibility(success ? View.VISIBLE : View.GONE);
                     }
+                    if (success) {
+                        // Doğrulama OK → kurulum ekranını aç
+                        installDownloadedApk(downloadId);
+                    }
                 });
+    }
+
+    private void installDownloadedApk(long downloadId) {
+        try {
+            Uri apkUri = resolveDownloadedApkUri(downloadId);
+            OtaInstaller.install(activity, downloadId, apkUri);
+            // Kurulum ekranı açıldı; diğer eski APK’ları sil (kurulan dosyayı koru)
+            File keep = OtaInstaller.resolveApkFilePublic(activity, downloadId, apkUri);
+            OtaCleanup.deleteOldApks(keep);
+        } catch (Exception e) {
+            Log.w("MGHA_OTA", "install failed, opening downloads: " + e.getMessage());
+            OtaDialogs.showMessageDialog(
+                    activity,
+                    activity.getString(R.string.ota_dialog_install_failed_message,
+                            e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName())
+            );
+            openDownloadsFolder();
+        }
     }
 
     private void openDownloadsFolder() {
