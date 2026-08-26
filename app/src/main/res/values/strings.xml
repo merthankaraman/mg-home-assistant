@@ -10,7 +10,7 @@
     <!-- Main screen -->
     <string name="title_main">MG4 Home Assistant</string>
     <string name="version_placeholder">v—</string>
-    <string name="version_format">v%1$s  (%2$s%3$s)</string>
+    <string name="version_format">v%1$s  %2$s%3$s</string>
     <string name="version_debug_suffix"> debug</string>
     <string name="subtitle_main">SOC, menzil, km, lastik, dış sıcaklık, şarj ve konum. Sim’de Demo modu ile dene.</string>
     <string name="label_ha_url">Home Assistant URL</string>

@@ -103,8 +103,8 @@ public class MainActivity extends AppCompatActivity {
         TextView versionView = findViewById(R.id.text_version);
         versionView.setText(getString(R.string.version_format,
                 BuildConfig.VERSION_NAME,
-                BuildConfig.DEBUG ? BuildConfig.FLAVOR : "",
-                BuildConfig.DEBUG ? getString(R.string.version_debug_suffix) : ""));
+                BuildConfig.DEBUG ? "(" + BuildConfig.FLAVOR : "",
+                BuildConfig.DEBUG ? getString(R.string.version_debug_suffix) + ")" : ""));
 
         loadFromSettings();
 
