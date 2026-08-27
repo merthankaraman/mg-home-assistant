@@ -1,82 +1,54 @@
 # MG Home Assistant
 
-Sürüm: **0.3**
+MG4 araç ekranındaki uygulamadır. Araç açıkken ve Wi‑Fi varken batarya, menzil, şarj, lastik, konum gibi bilgileri **Home Assistant**’a gönderir.
 
-MG4 infotainment’dan (veya Demo’da Sim varyantından) araç verisini Home Assistant’a gönderir.
+Araç uyanık kalmak zorunda değil; sen kullanırken / şarjdayken veri yeter. HA’nın dışarıdan erişilebilir bir adresi ve long-lived token’ı olmalı.
 
-Araç **herhangi bir WiFi’den** çalışır: public HA URL + long-lived token yeter. LAN’da HA’nın arabayı poll etmesi yok.
+---
 
-## 1) Home Assistant — önerilen yol (cihaz + hatırlama)
+## Ne lazım?
 
-### HACS ile (en kolay)
+1. Home Assistant (dışarıdan açılabilen URL)
+2. Bu uygulama (arabaya kurulu)
+3. İsteğe bağlı ama önerilen: HA entegrasyonu  
+   → [merthankaraman/mg4-ha-bridge](https://github.com/merthankaraman/mg4-ha-bridge)
 
-1. HACS kurulu olsun.
-2. HACS → **⋮** → **Custom repositories** → repo ekle:
-   - URL: `https://github.com/merthankaraman/mg-home-assistant`
-   - Category: **Integration**
-3. HACS → Integrations → **MG Home Assistant Bridge** → Download.
-4. HA’yı yeniden başlat.
-5. **Ayarlar → Cihazlar ve hizmetler → Entegrasyon ekle → MG Home Assistant Bridge**.
+---
 
-- **Cihaz adı:** örn. `MG4`
-- **Varlık öneki:** uygulamadaki önek ile aynı (varsayılan `mg4`)
+## Kurulum (kısa)
 
-### Elle kopyalama
+### 1. Home Assistant
 
-Repo’daki `custom_components/mg4_bridge` klasörünü HA’ya koy:
+1. HACS → Custom repositories → yukarıdaki repo → **Integration**.
+2. **MG Home Assistant Bridge** indir → HA’yı yeniden başlat.
+3. Entegrasyon ekle → cihaz adı + **varlık öneki** (arabadaki önek ile aynı).
 
-```
-config/custom_components/mg4_bridge/
-```
+Kurulum detayı: [mg4-ha-bridge README](https://github.com/merthankaraman/mg4-ha-bridge#readme)
 
-(Samba, Studio Code Server veya File editor ile.) Sonra restart + entegrasyon ekle (yukarıdaki adım 5).
+### 2. Arabaya uygulama
 
-Ayarlar → Cihazlar’da tek **MG4** cihazı görünür; restart sonrası değerler Restore ile kalır. Uygulama `mg4_bridge.push` yazar; component yoksa REST + `group.<öneki>` fallback’e düşer.
+- `car` sürümünü yükle (imzalı release).
+- Uygulamayı aç → HA URL + token kaydet.
+- Token’ı ekranda yazmak istemezsen: aynı Wi‑Fi’de **Siteden al** ile telefondan gönder.
+- **Açılışta başlat** ve gerekirse **Açılışta WiFi aç** açık olsun → Kaydet.
 
-## 2) Token’ı arabaya alma (telefona APK yok)
+Servis kendi başlar; arayüzü sürekli açık tutmana gerek yok.
 
-1. Araba ve telefon **aynı WiFi**’de olsun (sadece token aktarımı için).
-2. Arabada **Siteden al** → ekranda `http://192.168.x.x:18765/` çıkar.
-3. Telefonda tarayıcıya yaz → HA URL + token → **Arabaya kaydet**.
+### 3. Kontrol
 
-Token: HA kullanıcı menüsü → **Güvenlik** → **Long-lived access tokens**.
+- Arabada durum satırında gönderim görünür.
+- HA’da sensörler güncellenir (şarj %, menzil, lastik, konum…).
 
-HA URL dışarıdan erişilebilir olmalı (Nabu Casa, reverse proxy, vb.) — araba ev dışı WiFi’den de gönderebilsin.
+---
 
-## 3) Telefonda / Sim (test)
+## Güncelleme (OTA)
 
-Build Variant: **simDebug**.
+Arabada **Güncelleme kontrol et** → indir → kur.  
+Yeni sürüm GitHub Releases’e yüklenmiş olmalı.
 
-## 4) Arabaya
+---
 
-Build Variant: **carRelease** (veya carDebug), `tools/sign_and_install_release.bat` ile platform imzala.
+## Notlar
 
-## 5) OTA (GitHub Release)
-
-Uygulama `merthankaraman/mg-home-assistant` Releases API’sinden güncelleme çeker.
-
-1. `sign_and_install_release.bat` → `tools/releases/MG4_HA_<sürüm>.apk` + `.sha256`
-2. `publish_github_release.bat` → GitHub Release’e yükler
-3. Arabada **Güncelleme kontrol et** → indir → SHA-256 → sistem kurulum ekranı açılır (**Kur**)
-
-Release’te hem `.apk` hem `MG4_HA_x.y.apk.sha256` olmalı; aksi halde indirme engellenir.
-
-## Varlıklar (prefix `mg4` örneği)
-
-| Anahtar | Anlam |
-|---|---|
-| battery | SOC % |
-| range | menzil km |
-| mileage | odometre |
-| exterior_temperature | °C |
-| tire_pressure_* | kPa |
-| charging_status | `unplugged` / `AC` / `DC` / … |
-| charging | şarjda mı |
-| ac_* / battery_* | V / A / kW |
-| station_dc_* | yalnız DC şarjdayken |
-| last_update | zaman |
-| location | GPS |
-
-## Fallback (component yoksa)
-
-Uygulama `POST /api/states/...` ile varlık yazar ve `group.<öneki>` oluşturur. Bu yolda Cihazlar listesinde gerçek cihaz olmaz; component kurulunca cihaz + kalıcılık gelir.
+- Varsayılan olarak yalnız **Wi‑Fi** varken gönderir.
+- Gönderim aralığını uygulamadan ayarlarsın (örn. 1 dakika).
