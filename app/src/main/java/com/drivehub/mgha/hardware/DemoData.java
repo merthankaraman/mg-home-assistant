@@ -17,6 +17,7 @@ public final class DemoData {
         s.demo = true;
         s.carConnected = true;
         s.socPercent = 64.0f + wave * 0.8f;
+        s.chargeLimitPercent = 80;
         s.rangeKm = 236 + wave * 2;
         s.odometerKm = 18432;
         s.exteriorTempC = 16 + (wave % 4);

@@ -129,6 +129,7 @@
     <!-- Preview / vehicle -->
     <string name="preview_demo_header">DEMO MODU — sanal veri\n\n</string>
     <string name="preview_soc">Araç şarjı: %1$s\n</string>
+    <string name="preview_charge_limit">Şarj sınırı: %1$s\n</string>
     <string name="preview_range">Menzil: %1$s\n</string>
     <string name="preview_odometer">Toplam kilometre: %1$s\n</string>
     <string name="preview_exterior">Dış sıcaklık: %1$s\n</string>
@@ -170,6 +171,7 @@
 
     <!-- HA entity friendly names (sent to Home Assistant) -->
     <string name="ha_name_battery">Şarj yüzdesi</string>
+    <string name="ha_name_charge_limit">Şarj sınırı</string>
     <string name="ha_name_range">Menzil</string>
     <string name="ha_name_mileage">Kilometre</string>
     <string name="ha_name_exterior">Dış sıcaklık</string>

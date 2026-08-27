@@ -86,6 +86,7 @@ public final class HaPublisher {
                 binAttrs(ctx.getString(R.string.ha_name_charging)));
         String[] sensors = {
                 "sensor." + p + "_battery",
+                "sensor." + p + "_charge_limit",
                 "sensor." + p + "_range",
                 "sensor." + p + "_mileage",
                 "sensor." + p + "_exterior_temperature",
@@ -118,6 +119,7 @@ public final class HaPublisher {
             if (snap.demo) o.put("demo", true);
             o.put("last_update", isoUtc(snap.capturedAtMs));
             putNum(o, "battery", snap.socPercent);
+            putInt(o, "charge_limit", snap.chargeLimitPercent);
             putInt(o, "range", snap.rangeKm);
             putInt(o, "mileage", snap.odometerKm);
             putInt(o, "exterior_temperature", snap.exteriorTempC);
@@ -181,6 +183,8 @@ public final class HaPublisher {
                 attrs(ctx.getString(R.string.ha_name_mileage), "km", "distance", "total_increasing", "mdi:counter"));
         postNum(client, out, members, "sensor." + p + "_battery", snap.socPercent,
                 attrs(ctx.getString(R.string.ha_name_battery), "%", "battery", "measurement", "mdi:battery"));
+        postInt(client, out, members, "sensor." + p + "_charge_limit", snap.chargeLimitPercent,
+                attrs(ctx.getString(R.string.ha_name_charge_limit), "%", "battery", "measurement", "mdi:battery-charging-80"));
         postInt(client, out, members, "sensor." + p + "_range", snap.rangeKm,
                 attrs(ctx.getString(R.string.ha_name_range), "km", "distance", "measurement", "mdi:map-marker-distance"));
         postInt(client, out, members, "sensor." + p + "_exterior_temperature", snap.exteriorTempC,

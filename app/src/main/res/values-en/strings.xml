@@ -129,6 +129,7 @@
     <!-- Preview / vehicle -->
     <string name="preview_demo_header">DEMO MODE — simulated data\n\n</string>
     <string name="preview_soc">Battery charge: %1$s\n</string>
+    <string name="preview_charge_limit">Charge limit: %1$s\n</string>
     <string name="preview_range">Range: %1$s\n</string>
     <string name="preview_odometer">Odometer: %1$s\n</string>
     <string name="preview_exterior">Exterior temp: %1$s\n</string>
@@ -170,6 +171,7 @@
 
     <!-- HA entity friendly names (sent to Home Assistant) -->
     <string name="ha_name_battery">State of charge</string>
+    <string name="ha_name_charge_limit">Charge limit</string>
     <string name="ha_name_range">Range</string>
     <string name="ha_name_mileage">Odometer</string>
     <string name="ha_name_exterior">Exterior temperature</string>

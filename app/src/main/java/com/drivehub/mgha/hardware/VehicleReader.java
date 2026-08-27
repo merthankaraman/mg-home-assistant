@@ -44,6 +44,11 @@ public final class VehicleReader {
     private static final int PROP_AC_AMP = 0x2160F43C;
     private static final int PROP_AC_VOLT = 0x2160F43D;
     private static final int PROP_CHG_STATUS = 0x2140F409;
+    /**
+     * Hedef / limit SOC — getChargingCloseSoc.
+     * Ham değer 1..7 basamak; yüzde = 40 + (n - 1) * 10 → 1=%40 … 7=%100.
+     */
+    private static final int PROP_CHARGE_LIMIT_SOC = 0x2140F40C;
     /** Tahmini kalan şarj süresi (dakika) — getPredictChargingTime. */
     private static final int PROP_CHARGE_REMAIN_MIN = 0x2140F417;
     private static final int PROP_TOTAL_MILEAGE = 0x21401566;
@@ -205,6 +210,10 @@ public final class VehicleReader {
         s.carConnected = sCarPropertyManager != null;
 
         s.socPercent = firstFloat(getFloat(PROP_SOC), bmsFloat(PROP_SOC));
+        int limitStep = firstInt(getInt(PROP_CHARGE_LIMIT_SOC), bmsInt(PROP_CHARGE_LIMIT_SOC));
+        if (limitStep >= 1 && limitStep <= 7) {
+            s.chargeLimitPercent = 40 + (limitStep - 1) * 10;
+        }
         s.rangeKm = firstInt(getInt(PROP_RANGE), bmsInt(PROP_RANGE));
         s.odometerKm = getInt(PROP_TOTAL_MILEAGE);
         s.exteriorTempC = readOutsideTempC();
@@ -247,6 +256,7 @@ public final class VehicleReader {
 
         MghaLog.i(TAG, "read cpm=" + (sCarPropertyManager != null)
                 + " soc=" + s.socPercent
+                + " limit=" + s.chargeLimitPercent
                 + " range=" + s.rangeKm
                 + " km=" + s.odometerKm
                 + " chg=" + s.chargeStatus

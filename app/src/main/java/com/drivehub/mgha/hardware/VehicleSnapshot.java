@@ -15,6 +15,8 @@ public class VehicleSnapshot {
     public boolean carConnected;
 
     public float socPercent = Float.NaN;
+    /** Hedef şarj limiti (%). */
+    public int chargeLimitPercent = -1;
     public int rangeKm = -1;
     public int odometerKm = -1;
     public int exteriorTempC = -1;
@@ -50,6 +52,8 @@ public class VehicleSnapshot {
         }
         sb.append(ctx.getString(R.string.preview_last_update, fmtTime(ctx, capturedAtMs)));
         sb.append(ctx.getString(R.string.preview_soc, fmt(ctx, socPercent, R.string.fmt_percent)));
+        sb.append(ctx.getString(R.string.preview_charge_limit,
+                fmtInt(ctx, chargeLimitPercent, R.string.fmt_percent)));
         sb.append(ctx.getString(R.string.preview_range, fmtInt(ctx, rangeKm, R.string.fmt_km)));
         sb.append(ctx.getString(R.string.preview_odometer, fmtInt(ctx, odometerKm, R.string.fmt_km)));
         sb.append(ctx.getString(R.string.preview_exterior, fmtInt(ctx, exteriorTempC, R.string.fmt_celsius)));
