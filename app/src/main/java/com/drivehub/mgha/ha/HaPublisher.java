@@ -184,7 +184,7 @@ public final class HaPublisher {
         postNum(client, out, members, "sensor." + p + "_battery", snap.socPercent,
                 attrs(ctx.getString(R.string.ha_name_battery), "%", "battery", "measurement", "mdi:battery"));
         postInt(client, out, members, "sensor." + p + "_charge_limit", snap.chargeLimitPercent,
-                attrs(ctx.getString(R.string.ha_name_charge_limit), "%", "battery", "measurement", "mdi:battery-charging-80"));
+                attrs(ctx.getString(R.string.ha_name_charge_limit), "%", null, "measurement", "mdi:battery-charging-80"));
         postInt(client, out, members, "sensor." + p + "_range", snap.rangeKm,
                 attrs(ctx.getString(R.string.ha_name_range), "km", "distance", "measurement", "mdi:map-marker-distance"));
         postInt(client, out, members, "sensor." + p + "_exterior_temperature", snap.exteriorTempC,
