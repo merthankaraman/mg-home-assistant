@@ -3,6 +3,7 @@ package com.drivehub.mgha.hardware;
 import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
+import android.media.AudioManager;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
@@ -64,6 +65,10 @@ public final class VehicleReader {
     /** Dış ortam °C — getOutCarTemp (area HVAC_ALL). */
     private static final int PROP_OUT_CAR_TEMP = 0x15602511;
     private static final float OUT_CAR_TEMP_INVALID = -10000f;
+    /** MG4 multimedya ses adımı (ekran 0–32). */
+    private static final int MEDIA_VOLUME_MAX = 32;
+    /** {@link android.media.AudioAttributes#USAGE_MEDIA} */
+    private static final int AUDIO_USAGE_MEDIA = 1;
 
     private static final String SAIC_MAP_PACKAGE = "com.saicmotor.adapterservice";
     private static final String SAIC_MAP_SERVICE_CLASS = SAIC_MAP_PACKAGE + ".services.MapService";
@@ -73,6 +78,8 @@ public final class VehicleReader {
     private static Context sAppContext;
     private static Object sCar;
     private static Object sCarPropertyManager;
+    private static Object sCarAudioManager;
+    private static int sMediaVolumeGroupId = -1;
     private static boolean sCarBindAttempted;
     private static boolean sMapBindAttempted;
     private static IBinder sSaicMapBinder;
@@ -171,6 +178,127 @@ public final class VehicleReader {
         float v = getFloatArea(PROP_DRV_TEMP, AREA_HVAC_LEFT);
         if (Float.isNaN(v) || v < 16f || v > 30f) return -1;
         return Math.round(v);
+    }
+
+    /** Multimedya ses — önce {@code CarAudioManager} (ekranla aynı 0–32), yoksa STREAM_MUSIC. */
+    public static int readMediaVolumeLevel() {
+        if (sAppContext != null && !WifiHelper.isSim()) {
+            ensureReady(sAppContext);
+        }
+        Integer car = readCarMediaVolume();
+        if (car != null) return car;
+        return readStreamMusicVolumeScaled();
+    }
+
+    public static boolean setMediaVolumeLevel(int level) {
+        if (level < 0 || level > MEDIA_VOLUME_MAX) return false;
+        if (sAppContext != null && HaSettings.demoMode(sAppContext)) {
+            MghaLog.i(TAG, "demo: setMediaVolumeLevel(" + level + ")");
+            return true;
+        }
+        if (sAppContext != null && !WifiHelper.isSim()) {
+            ensureReady(sAppContext);
+        }
+        if (writeCarMediaVolume(level)) return true;
+        return writeStreamMusicVolumeScaled(level);
+    }
+
+    private static Integer readCarMediaVolume() {
+        if (sCarAudioManager == null) return null;
+        int groupId = resolveMediaVolumeGroupId();
+        if (groupId < 0) return null;
+        Integer vol = invokeCarAudioInt("getGroupVolume", groupId);
+        if (vol == null || vol < 0 || vol > MEDIA_VOLUME_MAX) return null;
+        return vol;
+    }
+
+    private static boolean writeCarMediaVolume(int level) {
+        if (sCarAudioManager == null) return false;
+        int groupId = resolveMediaVolumeGroupId();
+        if (groupId < 0) return false;
+        try {
+            Method set = sCarAudioManager.getClass()
+                    .getMethod("setGroupVolume", int.class, int.class, int.class);
+            set.invoke(sCarAudioManager, groupId, level, 0);
+            MghaLog.i(TAG, "CarAudio media volume " + level + " group=" + groupId);
+            return true;
+        } catch (Throwable t) {
+            MghaLog.w(TAG, "CarAudio setGroupVolume: " + t.getMessage());
+            return false;
+        }
+    }
+
+    private static int resolveMediaVolumeGroupId() {
+        if (sMediaVolumeGroupId >= 0) return sMediaVolumeGroupId;
+        if (sCarAudioManager == null) return -1;
+        Integer byUsage = invokeCarAudioInt("getVolumeGroupIdForUsage", AUDIO_USAGE_MEDIA);
+        if (byUsage != null && byUsage >= 0) {
+            sMediaVolumeGroupId = byUsage;
+            MghaLog.i(TAG, "media volume group (usage) = " + byUsage);
+            return sMediaVolumeGroupId;
+        }
+        Integer count = invokeCarAudioInt("getVolumeGroupCount");
+        if (count == null || count <= 0) return -1;
+        for (int g = 0; g < count; g++) {
+            Integer max = invokeCarAudioInt("getGroupMaxVolume", g);
+            if (max != null && max == MEDIA_VOLUME_MAX) {
+                sMediaVolumeGroupId = g;
+                MghaLog.i(TAG, "media volume group (max=32) = " + g);
+                return g;
+            }
+        }
+        return -1;
+    }
+
+    private static Integer invokeCarAudioInt(String method, int... args) {
+        if (sCarAudioManager == null) return null;
+        try {
+            Class<?>[] types = new Class<?>[args.length];
+            for (int i = 0; i < args.length; i++) types[i] = int.class;
+            Method m = sCarAudioManager.getClass().getMethod(method, types);
+            Object result = m.invoke(sCarAudioManager, boxInts(args));
+            if (result instanceof Integer) return (Integer) result;
+        } catch (Throwable t) {
+            MghaLog.w(TAG, "CarAudio " + method + ": " + t.getMessage());
+        }
+        return null;
+    }
+
+    private static Object[] boxInts(int... values) {
+        Object[] boxed = new Object[values.length];
+        for (int i = 0; i < values.length; i++) boxed[i] = values[i];
+        return boxed;
+    }
+
+    private static int readStreamMusicVolumeScaled() {
+        if (sAppContext == null) return -1;
+        AudioManager am = (AudioManager) sAppContext.getSystemService(Context.AUDIO_SERVICE);
+        if (am == null) return -1;
+        int max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+        if (max <= 0) return -1;
+        int cur = am.getStreamVolume(AudioManager.STREAM_MUSIC);
+        if (max == MEDIA_VOLUME_MAX) return cur;
+        return Math.round(cur * MEDIA_VOLUME_MAX / (float) max);
+    }
+
+    private static boolean writeStreamMusicVolumeScaled(int level) {
+        if (sAppContext == null) return false;
+        AudioManager am = (AudioManager) sAppContext.getSystemService(Context.AUDIO_SERVICE);
+        if (am == null) return false;
+        int max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+        if (max <= 0) return false;
+        int target = max == MEDIA_VOLUME_MAX
+                ? level
+                : Math.round(level * max / (float) MEDIA_VOLUME_MAX);
+        target = Math.max(0, Math.min(max, target));
+        try {
+            am.setStreamVolume(AudioManager.STREAM_MUSIC, target, 0);
+            MghaLog.i(TAG, "STREAM_MUSIC volume " + target + "/" + max + " (ui " + level + ")");
+            return true;
+        } catch (SecurityException e) {
+            MghaLog.w(TAG, "STREAM_MUSIC yazılamadı: " + e.getMessage());
+            return false;
+        }
     }
 
     /** CPM okuma: 0=kapalı, 1=açık. */
@@ -333,6 +461,7 @@ public final class VehicleReader {
         s.exteriorTempC = readOutsideTempC();
         s.hvacOn = hvacOnFromCpm(getIntArea(PROP_HVAC_POWER, AREA_HVAC));
         s.hvacTempC = readDriverTempC();
+        s.mediaVolumeLevel = readMediaVolumeLevel();
 
         s.tireKpaFl = getInt(PROP_TIRE_PRESSURE_FL);
         s.tireKpaFr = getInt(PROP_TIRE_PRESSURE_FR);
@@ -380,6 +509,7 @@ public final class VehicleReader {
                 + " outC=" + s.exteriorTempC
                 + " hvac=" + s.hvacOn
                 + " hvacT=" + s.hvacTempC
+                + " media=" + s.mediaVolumeLevel
                 + " gps=" + (Double.isNaN(s.latitude) ? "none" : (s.latitude + "," + s.longitude))
                 + " bmsCache=" + sBmsCache.size());
         return s;
@@ -530,7 +660,7 @@ public final class VehicleReader {
         if (context == null) return;
         if (sAppContext == null) sAppContext = context.getApplicationContext();
         if (WifiHelper.isSim()) return;
-        if (sCarPropertyManager != null) return;
+        if (sCarPropertyManager != null && sCarAudioManager != null) return;
         if (!sCarBindAttempted) {
             bindCarService(sAppContext);
             bindSaicMapService(sAppContext);
@@ -553,7 +683,7 @@ public final class VehicleReader {
 
     private static void tryGetManagers(Class<?> carClass) {
         if (sCar == null) return;
-        if (sCarPropertyManager != null) return;
+        if (sCarPropertyManager != null && sCarAudioManager != null) return;
         try {
             try {
                 Method isConnected = carClass.getMethod("isConnected");
@@ -566,27 +696,45 @@ public final class VehicleReader {
             } catch (Exception ignored) {}
 
             Method getCarManager = carClass.getMethod("getCarManager", String.class);
-            String propertyService = "property";
-            try {
-                propertyService = (String) carClass.getField("PROPERTY_SERVICE").get(null);
-            } catch (Exception ignored) {}
-            Object cpm = getCarManager.invoke(sCar, propertyService);
-            if (cpm != null) {
-                sCarPropertyManager = cpm;
-                MghaLog.i(TAG, "CarPropertyManager hazır: " + cpm.getClass().getName());
-            } else {
-                Log.e(TAG, "CarPropertyManager null (izin yok?)");
-            }
-            try {
-                Object bms = getCarManager.invoke(sCar, "bms");
-                if (bms != null) {
-                    registerBmsCallback(bms);
-                    MghaLog.i(TAG, "CarBMSManager hazır");
+            if (sCarPropertyManager == null) {
+                String propertyService = "property";
+                try {
+                    propertyService = (String) carClass.getField("PROPERTY_SERVICE").get(null);
+                } catch (Exception ignored) {}
+                Object cpm = getCarManager.invoke(sCar, propertyService);
+                if (cpm != null) {
+                    sCarPropertyManager = cpm;
+                    MghaLog.i(TAG, "CarPropertyManager hazır: " + cpm.getClass().getName());
                 } else {
-                    MghaLog.w(TAG, "CarBMSManager null");
+                    Log.e(TAG, "CarPropertyManager null (izin yok?)");
                 }
-            } catch (Exception e) {
-                MghaLog.w(TAG, "BMS manager yok: " + e.getMessage());
+            }
+            if (sCarAudioManager == null) {
+                String audioService = "audio";
+                try {
+                    audioService = (String) carClass.getField("AUDIO_SERVICE").get(null);
+                } catch (Exception ignored) {}
+                Object cam = getCarManager.invoke(sCar, audioService);
+                if (cam != null) {
+                    sCarAudioManager = cam;
+                    sMediaVolumeGroupId = -1;
+                    MghaLog.i(TAG, "CarAudioManager hazır: " + cam.getClass().getName());
+                } else {
+                    MghaLog.w(TAG, "CarAudioManager null");
+                }
+            }
+            if (sCarPropertyManager != null) {
+                try {
+                    Object bms = getCarManager.invoke(sCar, "bms");
+                    if (bms != null) {
+                        registerBmsCallback(bms);
+                        MghaLog.i(TAG, "CarBMSManager hazır");
+                    } else {
+                        MghaLog.w(TAG, "CarBMSManager null");
+                    }
+                } catch (Exception e) {
+                    MghaLog.w(TAG, "BMS manager yok: " + e.getMessage());
+                }
             }
         } catch (Exception e) {
             Log.e(TAG, "tryGetManagers: " + e.getClass().getSimpleName() + ": " + e.getMessage());

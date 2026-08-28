@@ -23,6 +23,9 @@ public final class HaSettings {
     public static final String KEY_POLL_ENABLED = "poll_enabled";
     public static final String KEY_POLL_INTERVAL_SEC = "poll_interval_sec";
 
+    /** HA komut poll aralığı alt sınırı (sn). */
+    public static final int MIN_POLL_INTERVAL_SEC = 1;
+
     private static volatile boolean sVerboseLog;
 
     private HaSettings() {}
@@ -54,9 +57,9 @@ public final class HaSettings {
         return intervalMin(ctx) * 60_000L;
     }
 
-    /** HA komut poll (sn). En az 10; varsayılan 30. */
+    /** HA komut poll (sn). En az {@link #MIN_POLL_INTERVAL_SEC}; varsayılan 30. */
     public static int pollIntervalSec(Context ctx) {
-        return Math.max(10, prefs(ctx).getInt(KEY_POLL_INTERVAL_SEC, 30));
+        return Math.max(MIN_POLL_INTERVAL_SEC, prefs(ctx).getInt(KEY_POLL_INTERVAL_SEC, 30));
     }
 
     public static long pollIntervalMs(Context ctx) {
@@ -129,7 +132,7 @@ public final class HaSettings {
                 .putBoolean(KEY_WIFI_ON_BOOT, wifiOnBoot)
                 .putBoolean(KEY_VERBOSE_LOG, verboseLog)
                 .putBoolean(KEY_POLL_ENABLED, pollEnabled)
-                .putInt(KEY_POLL_INTERVAL_SEC, Math.max(10, pollIntervalSec))
+                .putInt(KEY_POLL_INTERVAL_SEC, Math.max(MIN_POLL_INTERVAL_SEC, pollIntervalSec))
                 .apply();
         refreshVerboseCache(ctx);
     }

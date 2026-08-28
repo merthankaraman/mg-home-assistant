@@ -23,6 +23,7 @@ public final class DemoData {
         s.exteriorTempC = 16 + (wave % 4);
         s.hvacOn = (wave % 3) != 0;
         s.hvacTempC = 20 + (wave % 6);
+        s.mediaVolumeLevel = 8 + wave * 3;
         s.tireKpaFl = 238 + wave;
         s.tireKpaFr = 241;
         s.tireKpaRl = 235 + wave / 2;

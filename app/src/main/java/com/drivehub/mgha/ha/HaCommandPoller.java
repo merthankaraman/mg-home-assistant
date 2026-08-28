@@ -16,6 +16,7 @@ public final class HaCommandPoller {
     private static Boolean sLastHvacOn;
     private static Integer sLastChargeLimitPct;
     private static Integer sLastHvacTempC;
+    private static Integer sLastMediaVolume;
 
     private HaCommandPoller() {}
 
@@ -33,6 +34,7 @@ public final class HaCommandPoller {
 
         pollHvac(ctx, client, prefix);
         pollHvacTemp(ctx, client, prefix);
+        pollMediaVolume(ctx, client, prefix);
         pollChargeLimit(ctx, client, prefix);
     }
 
@@ -76,6 +78,28 @@ public final class HaCommandPoller {
         MghaLog.i(TAG, "klima " + tempC + "°C ← " + entity);
     }
 
+    private static void pollMediaVolume(Context ctx, HomeAssistantClient client, String prefix) {
+        String entity = "number." + prefix + "_media_volume";
+        Integer level = client.getNumberState(entity);
+        if (level == null) {
+            MghaLog.w(TAG, "poll okunamadı: " + entity);
+            return;
+        }
+        if (level < 0 || level > 32) {
+            MghaLog.w(TAG, "geçersiz medya sesi: " + level + " (0–32)");
+            return;
+        }
+        if (sLastMediaVolume != null && sLastMediaVolume.equals(level)) {
+            return;
+        }
+        if (!VehicleReader.setMediaVolumeLevel(level)) {
+            MghaLog.w(TAG, "medya sesi yazılamadı → " + level);
+            return;
+        }
+        sLastMediaVolume = level;
+        MghaLog.i(TAG, "medya sesi " + level + " ← " + entity);
+    }
+
     private static void pollChargeLimit(Context ctx, HomeAssistantClient client, String prefix) {
         String entity = "number." + prefix + "_charge_limit";
         Integer pct = client.getNumberState(entity);
@@ -116,9 +140,16 @@ public final class HaCommandPoller {
         }
     }
 
+    public static void noteMediaVolumeFromCar(int level) {
+        if (level >= 0 && level <= 32) {
+            sLastMediaVolume = level;
+        }
+    }
+
     public static void resetCache() {
         sLastHvacOn = null;
         sLastChargeLimitPct = null;
         sLastHvacTempC = null;
+        sLastMediaVolume = null;
     }
 }

@@ -49,6 +49,8 @@ public class VehicleSnapshot {
     public Boolean hvacOn;
     /** Hedef klima °C (getDrvTemp); okunamazsa -1. */
     public int hvacTempC = -1;
+    /** Multimedya ses seviyesi (0–32); okunamazsa -1. */
+    public int mediaVolumeLevel = -1;
 
     public String formatForScreen(Context ctx) {
         StringBuilder sb = new StringBuilder();
@@ -65,6 +67,8 @@ public class VehicleSnapshot {
         sb.append(ctx.getString(R.string.preview_hvac, fmtHvacOn(ctx, hvacOn)));
         sb.append(ctx.getString(R.string.preview_hvac_temp,
                 fmtInt(ctx, hvacTempC, R.string.fmt_celsius)));
+        sb.append(ctx.getString(R.string.preview_media_volume,
+                fmtInt(ctx, mediaVolumeLevel, R.string.fmt_plain)));
         sb.append('\n');
         sb.append(ctx.getString(R.string.preview_charge, chargeLabel(ctx, chargeStatus)));
         if (chargeStatus == 1 || chargeStatus == 10) {

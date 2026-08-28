@@ -61,6 +61,7 @@ public class HaBridgeService extends Service {
     private Integer lastPublishedChargeLimit;
     private Boolean lastPublishedHvac;
     private Integer lastPublishedHvacTemp;
+    private Integer lastPublishedMediaVolume;
 
     private final Runnable tickRunnable = this::tick;
     private final Runnable pollRunnable = this::pollTick;
@@ -144,6 +145,12 @@ public class HaBridgeService extends Service {
                 changed = true;
             }
         }
+        if (snap.mediaVolumeLevel >= 0 && snap.mediaVolumeLevel <= 32) {
+            if (lastPublishedMediaVolume != null
+                    && lastPublishedMediaVolume != snap.mediaVolumeLevel) {
+                changed = true;
+            }
+        }
         return changed;
     }
 
@@ -157,6 +164,9 @@ public class HaBridgeService extends Service {
         }
         if (snap.hvacTempC >= 16 && snap.hvacTempC <= 30) {
             lastPublishedHvacTemp = snap.hvacTempC;
+        }
+        if (snap.mediaVolumeLevel >= 0 && snap.mediaVolumeLevel <= 32) {
+            lastPublishedMediaVolume = snap.mediaVolumeLevel;
         }
     }
 

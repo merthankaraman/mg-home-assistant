@@ -49,6 +49,9 @@ public final class HaPublisher {
             if (snap.hvacTempC >= 16 && snap.hvacTempC <= 30) {
                 HaCommandPoller.noteHvacTempFromCar(snap.hvacTempC);
             }
+            if (snap.mediaVolumeLevel >= 0 && snap.mediaVolumeLevel <= 32) {
+                HaCommandPoller.noteMediaVolumeFromCar(snap.mediaVolumeLevel);
+            }
             return out;
         }
         // Yalnızca servis yoksa REST; ağ/SSL hatasında fallback yağmuru yapma
@@ -132,6 +135,7 @@ public final class HaPublisher {
                 o.put("hvac", snap.hvacOn);
             }
             putInt(o, "hvac_temp", snap.hvacTempC);
+            putInt(o, "media_volume", snap.mediaVolumeLevel);
             putInt(o, "range", snap.rangeKm);
             putInt(o, "mileage", snap.odometerKm);
             putInt(o, "exterior_temperature", snap.exteriorTempC);
@@ -262,6 +266,9 @@ public final class HaPublisher {
         }
         if (out.ok > 0 && snap.hvacTempC >= 16 && snap.hvacTempC <= 30) {
             HaCommandPoller.noteHvacTempFromCar(snap.hvacTempC);
+        }
+        if (out.ok > 0 && snap.mediaVolumeLevel >= 0 && snap.mediaVolumeLevel <= 32) {
+            HaCommandPoller.noteMediaVolumeFromCar(snap.mediaVolumeLevel);
         }
         return out;
     }

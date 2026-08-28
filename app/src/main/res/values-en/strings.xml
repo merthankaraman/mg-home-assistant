@@ -141,6 +141,7 @@
     <string name="preview_hvac_on">on</string>
     <string name="preview_hvac_off">off</string>
     <string name="preview_hvac_temp">Climate setpoint: %1$s\n</string>
+    <string name="preview_media_volume">Media volume: %1$s\n</string>
     <string name="preview_charge">Charging: %1$s\n</string>
     <string name="preview_charge_remaining">Remaining: %1$s\n</string>
     <string name="preview_yes">yes</string>
@@ -160,6 +161,7 @@
     <string name="preview_unknown">\?</string>
     <!-- Number + unit: adjust order per locale (%1$s = number text) -->
     <string name="fmt_percent">%1$s%%</string>
+    <string name="fmt_plain">%1$s</string>
     <string name="fmt_km">%1$s km</string>
     <string name="fmt_celsius">%1$s °C</string>
     <string name="fmt_kw">%1$s kW</string>
