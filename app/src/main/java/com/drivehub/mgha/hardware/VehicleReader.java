@@ -241,7 +241,7 @@ public final class VehicleReader {
             s.acChargingPowerKw = (s.acVoltageV * s.acCurrentA) / 1000f;
         }
         if (!Float.isNaN(s.batteryVoltageV) && !Float.isNaN(s.batteryCurrentA)) {
-            s.dcChargingPowerKw = Math.abs(s.batteryVoltageV * s.batteryCurrentA) / 1000f;
+            s.dcChargingPowerKw = (s.batteryVoltageV * s.batteryCurrentA) / 1000f;
         }
         if (!Float.isNaN(s.batteryVoltageV) && !Float.isNaN(s.stationDcCurrentA)) {
             float stationKw = (s.batteryVoltageV * s.stationDcCurrentA) / 1000f;

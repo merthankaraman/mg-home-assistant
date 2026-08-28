@@ -132,18 +132,13 @@ public final class HaPublisher {
             putNum(o, "battery_voltage", snap.batteryVoltageV);
             putNum(o, "battery_current", snap.batteryCurrentA);
             putNum(o, "battery_charging_power", snap.dcChargingPowerKw);
-            if (snap.chargeStatus == 1 || snap.chargeStatus == 10) {
-                putInt(o, "charge_remaining", snap.chargeRemainingMin);
-            }
-            if (snap.chargeStatus == 10) {
-                putNum(o, "station_dc_current", snap.stationDcCurrentA);
-                putNum(o, "station_dc_power", snap.stationDcPowerKw);
-            }
-            if (snap.chargeStatus == 1) {
-                putNum(o, "ac_voltage", snap.acVoltageV);
-                putNum(o, "ac_current", snap.acCurrentA);
-                putNum(o, "ac_charging_power", snap.acChargingPowerKw);
-            }
+            putChargeInt(o, "charge_remaining", snap.chargeRemainingMin,
+                    snap.chargeStatus == 1 || snap.chargeStatus == 10);
+            putChargeNum(o, "station_dc_current", snap.stationDcCurrentA, snap.chargeStatus == 10);
+            putChargeNum(o, "station_dc_power", snap.stationDcPowerKw, snap.chargeStatus == 10);
+            putChargeNum(o, "ac_voltage", snap.acVoltageV, snap.chargeStatus == 1);
+            putChargeNum(o, "ac_current", snap.acCurrentA, snap.chargeStatus == 1);
+            putChargeNum(o, "ac_charging_power", snap.acChargingPowerKw, snap.chargeStatus == 1);
             if (!Double.isNaN(snap.latitude) && !Double.isNaN(snap.longitude)) {
                 o.put("latitude", snap.latitude);
                 o.put("longitude", snap.longitude);
@@ -157,8 +152,28 @@ public final class HaPublisher {
         if (!Float.isNaN(v)) o.put(key, v);
     }
 
+    /** Şarj modu aktif değilse 0; aktifse geçerli değer (NaN ise gönderme). */
+    private static void putChargeNum(JSONObject o, String key, float v, boolean active)
+            throws Exception {
+        if (!active) {
+            o.put(key, 0);
+            return;
+        }
+        putNum(o, key, v);
+    }
+
     private static void putInt(JSONObject o, String key, int v) throws Exception {
         if (v >= 0) o.put(key, v);
+    }
+
+    /** Şarj modu aktif değilse 0; aktifse geçerli değer (geçersizse gönderme). */
+    private static void putChargeInt(JSONObject o, String key, int v, boolean active)
+            throws Exception {
+        if (!active) {
+            o.put(key, 0);
+            return;
+        }
+        putInt(o, key, v);
     }
 
     private static PublishResult publishRest(Context ctx, HomeAssistantClient client,
@@ -202,27 +217,29 @@ public final class HaPublisher {
                 binAttrs(ctx.getString(R.string.ha_name_charging)));
         postStr(client, out, members, "sensor." + p + "_charging_status", chargeState(snap.chargeStatus),
                 attrs(ctx.getString(R.string.ha_name_charging_status), null, null, null, "mdi:ev-station"));
-        if (snap.chargeStatus == 1 || snap.chargeStatus == 10) {
-            postInt(client, out, members, "sensor." + p + "_charge_remaining", snap.chargeRemainingMin,
-                    attrs(ctx.getString(R.string.ha_name_charge_remaining), "min", "duration", "measurement", "mdi:timer-sand"));
-        }
+        postChargeInt(client, out, members, "sensor." + p + "_charge_remaining", snap.chargeRemainingMin,
+                snap.chargeStatus == 1 || snap.chargeStatus == 10,
+                attrs(ctx.getString(R.string.ha_name_charge_remaining), "min", "duration", "measurement", "mdi:timer-sand"));
         postNum(client, out, members, "sensor." + p + "_battery_voltage", snap.batteryVoltageV,
                 attrs(ctx.getString(R.string.ha_name_battery_voltage), "V", "voltage", "measurement", "mdi:car-battery"));
         postNum(client, out, members, "sensor." + p + "_battery_current", snap.batteryCurrentA,
                 attrs(ctx.getString(R.string.ha_name_battery_current), "A", "current", "measurement", "mdi:current-dc"));
         postNum(client, out, members, "sensor." + p + "_battery_charging_power", snap.dcChargingPowerKw,
                 attrs(ctx.getString(R.string.ha_name_battery_charging_power), "kW", "power", "measurement", "mdi:ev-station"));
-        if (snap.chargeStatus == 10) {
-            postNum(client, out, members, "sensor." + p + "_station_dc_current", snap.stationDcCurrentA,
-                    attrs(ctx.getString(R.string.ha_name_station_dc_current), "A", "current", "measurement", "mdi:current-dc"));
-            postNum(client, out, members, "sensor." + p + "_station_dc_power", snap.stationDcPowerKw,
-                    attrs(ctx.getString(R.string.ha_name_station_dc_power), "kW", "power", "measurement", "mdi:ev-station"));
-        }
-        postNum(client, out, members, "sensor." + p + "_ac_voltage", snap.acVoltageV,
+        postChargeNum(client, out, members, "sensor." + p + "_station_dc_current", snap.stationDcCurrentA,
+                snap.chargeStatus == 10,
+                attrs(ctx.getString(R.string.ha_name_station_dc_current), "A", "current", "measurement", "mdi:current-dc"));
+        postChargeNum(client, out, members, "sensor." + p + "_station_dc_power", snap.stationDcPowerKw,
+                snap.chargeStatus == 10,
+                attrs(ctx.getString(R.string.ha_name_station_dc_power), "kW", "power", "measurement", "mdi:ev-station"));
+        postChargeNum(client, out, members, "sensor." + p + "_ac_voltage", snap.acVoltageV,
+                snap.chargeStatus == 1,
                 attrs(ctx.getString(R.string.ha_name_ac_voltage), "V", "voltage", "measurement", "mdi:flash"));
-        postNum(client, out, members, "sensor." + p + "_ac_current", snap.acCurrentA,
+        postChargeNum(client, out, members, "sensor." + p + "_ac_current", snap.acCurrentA,
+                snap.chargeStatus == 1,
                 attrs(ctx.getString(R.string.ha_name_ac_current), "A", "current", "measurement", "mdi:current-ac"));
-        postNum(client, out, members, "sensor." + p + "_ac_charging_power", snap.acChargingPowerKw,
+        postChargeNum(client, out, members, "sensor." + p + "_ac_charging_power", snap.acChargingPowerKw,
+                snap.chargeStatus == 1,
                 attrs(ctx.getString(R.string.ha_name_ac_charging_power), "kW", "power", "measurement", "mdi:flash"));
         if (members.length() > 0) {
             ensureGroup(ctx, client, out, p, members);
@@ -296,10 +313,28 @@ public final class HaPublisher {
         post(c, out, members, id, trimNum(v), attrs);
     }
 
+    private static void postChargeNum(HomeAssistantClient c, PublishResult out, JSONArray members,
+                                      String id, float v, boolean active, JSONObject attrs) {
+        if (!active) {
+            post(c, out, members, id, "0", attrs);
+            return;
+        }
+        postNum(c, out, members, id, v, attrs);
+    }
+
     private static void postInt(HomeAssistantClient c, PublishResult out, JSONArray members,
                                 String id, int v, JSONObject attrs) {
         if (v < 0) return;
         post(c, out, members, id, String.valueOf(v), attrs);
+    }
+
+    private static void postChargeInt(HomeAssistantClient c, PublishResult out, JSONArray members,
+                                      String id, int v, boolean active, JSONObject attrs) {
+        if (!active) {
+            post(c, out, members, id, "0", attrs);
+            return;
+        }
+        postInt(c, out, members, id, v, attrs);
     }
 
     private static void postStr(HomeAssistantClient c, PublishResult out, JSONArray members,
