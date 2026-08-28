@@ -137,6 +137,10 @@
     <string name="preview_range">Menzil: %1$s\n</string>
     <string name="preview_odometer">Toplam kilometre: %1$s\n</string>
     <string name="preview_exterior">Dış sıcaklık: %1$s\n</string>
+    <string name="preview_hvac">Klima: %1$s\n</string>
+    <string name="preview_hvac_on">açık</string>
+    <string name="preview_hvac_off">kapalı</string>
+    <string name="preview_hvac_temp">Klima hedefi: %1$s\n</string>
     <string name="preview_charge">Şarj: %1$s\n</string>
     <string name="preview_charge_remaining">Kalan süre: %1$s\n</string>
     <string name="preview_yes">evet</string>

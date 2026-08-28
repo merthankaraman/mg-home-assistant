@@ -46,6 +46,9 @@ public final class HaPublisher {
             if (snap.hvacOn != null) {
                 HaCommandPoller.noteHvacFromCar(snap.hvacOn);
             }
+            if (snap.hvacTempC >= 16 && snap.hvacTempC <= 30) {
+                HaCommandPoller.noteHvacTempFromCar(snap.hvacTempC);
+            }
             return out;
         }
         // Yalnızca servis yoksa REST; ağ/SSL hatasında fallback yağmuru yapma
@@ -128,6 +131,7 @@ public final class HaPublisher {
             if (snap.hvacOn != null) {
                 o.put("hvac", snap.hvacOn);
             }
+            putInt(o, "hvac_temp", snap.hvacTempC);
             putInt(o, "range", snap.rangeKm);
             putInt(o, "mileage", snap.odometerKm);
             putInt(o, "exterior_temperature", snap.exteriorTempC);
@@ -255,6 +259,9 @@ public final class HaPublisher {
         }
         if (out.ok > 0 && snap.hvacOn != null) {
             HaCommandPoller.noteHvacFromCar(snap.hvacOn);
+        }
+        if (out.ok > 0 && snap.hvacTempC >= 16 && snap.hvacTempC <= 30) {
+            HaCommandPoller.noteHvacTempFromCar(snap.hvacTempC);
         }
         return out;
     }

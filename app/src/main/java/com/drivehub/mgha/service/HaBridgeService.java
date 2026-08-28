@@ -57,15 +57,16 @@ public class HaBridgeService extends Service {
     private long serviceStartElapsedMs;
     /** finally’de kullanılacak bir sonraki gecikme; -1 = normal interval. */
     private long nextDelayMs = -1L;
-    /** Son başarılı push'taki komut alanları (arabada değişince hemen tick). */
+    /** Son push'taki poll komut alanları (arabada değişince tam push tetiklenir). */
     private Integer lastPublishedChargeLimit;
     private Boolean lastPublishedHvac;
+    private Integer lastPublishedHvacTemp;
 
     private final Runnable tickRunnable = this::tick;
     private final Runnable pollRunnable = this::pollTick;
-    private final Runnable commandWatchRunnable = this::commandWatchTick;
+    private final Runnable pollCommandWatchRunnable = this::pollCommandWatchTick;
 
-    private static final long COMMAND_WATCH_MS = 5_000L;
+    private static final long POLL_COMMAND_WATCH_MS = 5_000L;
 
     private void pollTick() {
         try {
@@ -97,31 +98,34 @@ public class HaBridgeService extends Service {
         worker.post(pollRunnable);
     }
 
-    private void startCommandWatch() {
+    private void startPollCommandWatch() {
         if (shuttingDown || worker == null) return;
-        worker.removeCallbacks(commandWatchRunnable);
-        worker.postDelayed(commandWatchRunnable, COMMAND_WATCH_MS);
+        worker.removeCallbacks(pollCommandWatchRunnable);
+        worker.postDelayed(pollCommandWatchRunnable, POLL_COMMAND_WATCH_MS);
     }
 
-    /** Şarj sınırı / klima arabada değişince beklemeden HA'ya push. */
-    private void commandWatchTick() {
+    /**
+     * Poll komutları (klima, şarj sınırı, kabin °C) arabada değişince yalnızca o alanı değil,
+     * normal tick'teki tam mg4_bridge.push yükünü hemen gönder.
+     */
+    private void pollCommandWatchTick() {
         try {
             if (!HaSettings.isConfigured(this)) return;
             if (!WifiHelper.canSend(this, HaSettings.wifiOnly(this))) return;
             VehicleSnapshot snap = VehicleReader.read();
-            if (commandTelemetryChanged(snap)) {
-                MghaLog.i(TAG, "komut telemetrisi değişti → anında tick");
+            if (pollCommandChangedOnCar(snap)) {
+                MghaLog.i(TAG, "poll komutu arabada değişti → tam push");
                 worker.removeCallbacks(tickRunnable);
                 worker.post(tickRunnable);
             }
         } catch (Throwable t) {
-            MghaLog.w(TAG, "commandWatch: " + t.getMessage());
+            MghaLog.w(TAG, "pollCommandWatch: " + t.getMessage());
         } finally {
-            startCommandWatch();
+            startPollCommandWatch();
         }
     }
 
-    private boolean commandTelemetryChanged(VehicleSnapshot snap) {
+    private boolean pollCommandChangedOnCar(VehicleSnapshot snap) {
         if (snap == null) return false;
         boolean changed = false;
         if (snap.chargeLimitPercent >= 40 && snap.chargeLimitPercent <= 100) {
@@ -135,16 +139,24 @@ public class HaBridgeService extends Service {
                 changed = true;
             }
         }
+        if (snap.hvacTempC >= 16 && snap.hvacTempC <= 30) {
+            if (lastPublishedHvacTemp != null && !lastPublishedHvacTemp.equals(snap.hvacTempC)) {
+                changed = true;
+            }
+        }
         return changed;
     }
 
-    private void rememberPublishedCommandFields(VehicleSnapshot snap) {
+    private void rememberPublishedPollCommands(VehicleSnapshot snap) {
         if (snap == null) return;
         if (snap.chargeLimitPercent >= 40 && snap.chargeLimitPercent <= 100) {
             lastPublishedChargeLimit = snap.chargeLimitPercent;
         }
         if (snap.hvacOn != null) {
             lastPublishedHvac = snap.hvacOn;
+        }
+        if (snap.hvacTempC >= 16 && snap.hvacTempC <= 30) {
+            lastPublishedHvacTemp = snap.hvacTempC;
         }
     }
 
@@ -182,7 +194,7 @@ public class HaBridgeService extends Service {
         registerNetworkCallback();
         worker.post(tickRunnable);
         startPollLoop();
-        startCommandWatch();
+        startPollCommandWatch();
         broadcastStatus();
     }
 
@@ -321,7 +333,7 @@ public class HaBridgeService extends Service {
             BridgeStatus.lastSendAtMs = System.currentTimeMillis();
             BridgeStatus.lastSendOk = r.fail == 0 && r.ok > 0;
             if (BridgeStatus.lastSendOk) {
-                rememberPublishedCommandFields(snap);
+                rememberPublishedPollCommands(snap);
                 String dest = r.viaBridge
                         ? ("mg4_bridge/" + HaSettings.prefix(this))
                         : ("group." + HaSettings.prefix(this));

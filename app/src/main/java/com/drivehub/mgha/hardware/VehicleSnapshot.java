@@ -47,6 +47,8 @@ public class VehicleSnapshot {
 
     /** Klima açık (PROP_HVAC_POWER); okunamazsa null. */
     public Boolean hvacOn;
+    /** Hedef klima °C (getDrvTemp); okunamazsa -1. */
+    public int hvacTempC = -1;
 
     public String formatForScreen(Context ctx) {
         StringBuilder sb = new StringBuilder();
@@ -60,6 +62,9 @@ public class VehicleSnapshot {
         sb.append(ctx.getString(R.string.preview_range, fmtInt(ctx, rangeKm, R.string.fmt_km)));
         sb.append(ctx.getString(R.string.preview_odometer, fmtInt(ctx, odometerKm, R.string.fmt_km)));
         sb.append(ctx.getString(R.string.preview_exterior, fmtInt(ctx, exteriorTempC, R.string.fmt_celsius)));
+        sb.append(ctx.getString(R.string.preview_hvac, fmtHvacOn(ctx, hvacOn)));
+        sb.append(ctx.getString(R.string.preview_hvac_temp,
+                fmtInt(ctx, hvacTempC, R.string.fmt_celsius)));
         sb.append('\n');
         sb.append(ctx.getString(R.string.preview_charge, chargeLabel(ctx, chargeStatus)));
         if (chargeStatus == 1 || chargeStatus == 10) {
@@ -119,6 +124,11 @@ public class VehicleSnapshot {
     private static String fmtInt(Context ctx, int v, int formatRes) {
         if (v < 0) return ctx.getString(R.string.preview_unknown);
         return ctx.getString(formatRes, String.valueOf(v));
+    }
+
+    private static String fmtHvacOn(Context ctx, Boolean on) {
+        if (on == null) return ctx.getString(R.string.preview_unknown);
+        return ctx.getString(on ? R.string.preview_hvac_on : R.string.preview_hvac_off);
     }
 
     private String fmtGps(Context ctx) {

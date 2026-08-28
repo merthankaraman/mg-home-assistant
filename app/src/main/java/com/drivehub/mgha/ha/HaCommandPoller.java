@@ -15,6 +15,7 @@ public final class HaCommandPoller {
 
     private static Boolean sLastHvacOn;
     private static Integer sLastChargeLimitPct;
+    private static Integer sLastHvacTempC;
 
     private HaCommandPoller() {}
 
@@ -31,6 +32,7 @@ public final class HaCommandPoller {
                 HaSettings.allowInsecureSsl(ctx));
 
         pollHvac(ctx, client, prefix);
+        pollHvacTemp(ctx, client, prefix);
         pollChargeLimit(ctx, client, prefix);
     }
 
@@ -50,6 +52,28 @@ public final class HaCommandPoller {
         }
         sLastHvacOn = hvacOn;
         MghaLog.i(TAG, "klima " + (hvacOn ? "açıldı" : "kapatıldı") + " ← " + entity);
+    }
+
+    private static void pollHvacTemp(Context ctx, HomeAssistantClient client, String prefix) {
+        String entity = "number." + prefix + "_hvac_temperature";
+        Integer tempC = client.getNumberState(entity);
+        if (tempC == null) {
+            MghaLog.w(TAG, "poll okunamadı: " + entity);
+            return;
+        }
+        if (tempC < 16 || tempC > 30) {
+            MghaLog.w(TAG, "geçersiz klima °C: " + tempC + " (16–30)");
+            return;
+        }
+        if (sLastHvacTempC != null && sLastHvacTempC.equals(tempC)) {
+            return;
+        }
+        if (!VehicleReader.setHvacTemperature(tempC)) {
+            MghaLog.w(TAG, "klima °C yazılamadı → " + tempC);
+            return;
+        }
+        sLastHvacTempC = tempC;
+        MghaLog.i(TAG, "klima " + tempC + "°C ← " + entity);
     }
 
     private static void pollChargeLimit(Context ctx, HomeAssistantClient client, String prefix) {
@@ -86,8 +110,15 @@ public final class HaCommandPoller {
         }
     }
 
+    public static void noteHvacTempFromCar(int tempC) {
+        if (tempC >= 16 && tempC <= 30) {
+            sLastHvacTempC = tempC;
+        }
+    }
+
     public static void resetCache() {
         sLastHvacOn = null;
         sLastChargeLimitPct = null;
+        sLastHvacTempC = null;
     }
 }

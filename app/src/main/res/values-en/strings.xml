@@ -137,6 +137,10 @@
     <string name="preview_range">Range: %1$s\n</string>
     <string name="preview_odometer">Odometer: %1$s\n</string>
     <string name="preview_exterior">Exterior temp: %1$s\n</string>
+    <string name="preview_hvac">Climate: %1$s\n</string>
+    <string name="preview_hvac_on">on</string>
+    <string name="preview_hvac_off">off</string>
+    <string name="preview_hvac_temp">Climate setpoint: %1$s\n</string>
     <string name="preview_charge">Charging: %1$s\n</string>
     <string name="preview_charge_remaining">Remaining: %1$s\n</string>
     <string name="preview_yes">yes</string>

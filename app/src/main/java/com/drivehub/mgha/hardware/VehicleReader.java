@@ -34,6 +34,7 @@ public final class VehicleReader {
 
     private static final int AREA_GLOBAL = 0x01000000;
     private static final int AREA_HVAC = 0x75; // HVAC_ALL
+    private static final int AREA_HVAC_LEFT = 0x31; // sürücü (getDrvTemp zone)
 
     private static final int PROP_SPEED = 0x11600207;
     private static final int PROP_SOC = 0x2160F404;
@@ -56,9 +57,11 @@ public final class VehicleReader {
     private static final int PROP_TIRE_PRESSURE_FR = 0x21401554;
     private static final int PROP_TIRE_PRESSURE_RL = 0x21401555;
     private static final int PROP_TIRE_PRESSURE_RR = 0x21401556;
-    /** Klima ana switch — MG4 binder/CPM (area HVAC_ALL). */
+    /** Klima ana switch — CPM (area HVAC_ALL). */
     private static final int PROP_HVAC_POWER = 0x15402503;
-    /** Dış ortam °C — AirConditionBinder.getOutCarTemp (area HVAC_ALL). */
+    /** Sürücü hedef °C — getDrvTemp / setDrvTemp (area HVAC_LEFT, float). */
+    private static final int PROP_DRV_TEMP = 0x1560250B;
+    /** Dış ortam °C — getOutCarTemp (area HVAC_ALL). */
     private static final int PROP_OUT_CAR_TEMP = 0x15602511;
     private static final float OUT_CAR_TEMP_INVALID = -10000f;
 
@@ -151,6 +154,25 @@ public final class VehicleReader {
         return setIntArea(PROP_HVAC_POWER, AREA_HVAC, 1);
     }
 
+    /** Hedef klima °C — CPM {@code PROP_DRV_TEMP} area {@code AREA_HVAC_LEFT}. */
+    public static boolean setHvacTemperature(int tempC) {
+        if (tempC < 16 || tempC > 30) return false;
+        if (sAppContext != null && HaSettings.demoMode(sAppContext)) {
+            MghaLog.i(TAG, "demo: setHvacTemperature(" + tempC + ")");
+            return true;
+        }
+        if (sAppContext != null && !WifiHelper.isSim()) {
+            ensureReady(sAppContext);
+        }
+        return setFloatArea(PROP_DRV_TEMP, AREA_HVAC_LEFT, (float) tempC);
+    }
+
+    private static int readDriverTempC() {
+        float v = getFloatArea(PROP_DRV_TEMP, AREA_HVAC_LEFT);
+        if (Float.isNaN(v) || v < 16f || v > 30f) return -1;
+        return Math.round(v);
+    }
+
     /** CPM okuma: 0=kapalı, 1=açık. */
     private static Boolean hvacOnFromCpm(int raw) {
         if (raw == 0) return false;
@@ -171,6 +193,24 @@ public final class VehicleReader {
             Throwable c = t instanceof java.lang.reflect.InvocationTargetException
                     ? ((java.lang.reflect.InvocationTargetException) t).getCause() : t;
             MghaLog.w(TAG, "setInt 0x" + Integer.toHexString(propId) + " "
+                    + (c != null ? c.getClass().getSimpleName() + ": " + c.getMessage() : t.toString()));
+            return false;
+        }
+    }
+
+    private static boolean setFloatArea(int propId, int area, float value) {
+        if (sCarPropertyManager == null) return false;
+        try {
+            Method setFloat = sCarPropertyManager.getClass()
+                    .getMethod("setFloatProperty", int.class, int.class, float.class);
+            setFloat.invoke(sCarPropertyManager, propId, area, value);
+            MghaLog.i(TAG, "setFloat 0x" + Integer.toHexString(propId)
+                    + " area=0x" + Integer.toHexString(area) + " val=" + value);
+            return true;
+        } catch (Throwable t) {
+            Throwable c = t instanceof java.lang.reflect.InvocationTargetException
+                    ? ((java.lang.reflect.InvocationTargetException) t).getCause() : t;
+            MghaLog.w(TAG, "setFloat 0x" + Integer.toHexString(propId) + " "
                     + (c != null ? c.getClass().getSimpleName() + ": " + c.getMessage() : t.toString()));
             return false;
         }
@@ -292,6 +332,7 @@ public final class VehicleReader {
         s.odometerKm = getInt(PROP_TOTAL_MILEAGE);
         s.exteriorTempC = readOutsideTempC();
         s.hvacOn = hvacOnFromCpm(getIntArea(PROP_HVAC_POWER, AREA_HVAC));
+        s.hvacTempC = readDriverTempC();
 
         s.tireKpaFl = getInt(PROP_TIRE_PRESSURE_FL);
         s.tireKpaFr = getInt(PROP_TIRE_PRESSURE_FR);
@@ -338,6 +379,7 @@ public final class VehicleReader {
                 + " tires=" + s.tireKpaFl + "/" + s.tireKpaFr + "/" + s.tireKpaRl + "/" + s.tireKpaRr
                 + " outC=" + s.exteriorTempC
                 + " hvac=" + s.hvacOn
+                + " hvacT=" + s.hvacTempC
                 + " gps=" + (Double.isNaN(s.latitude) ? "none" : (s.latitude + "," + s.longitude))
                 + " bmsCache=" + sBmsCache.size());
         return s;
