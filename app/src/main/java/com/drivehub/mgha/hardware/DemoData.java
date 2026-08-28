@@ -23,6 +23,7 @@ public final class DemoData {
         s.exteriorTempC = 16 + (wave % 4);
         s.hvacOn = (wave % 3) != 0;
         s.hvacTempC = 20 + (wave % 6);
+        s.hvacFanLevel = (wave % 9) == 0 ? VehicleReader.HVAC_FAN_AUTO : 3 + (wave % 8);
         s.mediaVolumeLevel = 8 + wave * 3;
         s.tireKpaFl = 238 + wave;
         s.tireKpaFr = 241;

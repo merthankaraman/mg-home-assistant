@@ -16,6 +16,7 @@ public final class HaCommandPoller {
     private static Boolean sLastHvacOn;
     private static Integer sLastChargeLimitPct;
     private static Integer sLastHvacTempC;
+    private static Integer sLastHvacFanLevel;
     private static Integer sLastMediaVolume;
 
     private HaCommandPoller() {}
@@ -34,6 +35,7 @@ public final class HaCommandPoller {
 
         pollHvac(ctx, client, prefix);
         pollHvacTemp(ctx, client, prefix);
+        pollHvacFan(ctx, client, prefix);
         pollMediaVolume(ctx, client, prefix);
         pollChargeLimit(ctx, client, prefix);
     }
@@ -76,6 +78,32 @@ public final class HaCommandPoller {
         }
         sLastHvacTempC = tempC;
         MghaLog.i(TAG, "klima " + tempC + "°C ← " + entity);
+    }
+
+    private static void pollHvacFan(Context ctx, HomeAssistantClient client, String prefix) {
+        String entity = "number." + prefix + "_hvac_fan";
+        Integer level = client.getNumberState(entity);
+        if (level == null) {
+            MghaLog.w(TAG, "poll okunamadı: " + entity);
+            return;
+        }
+        if (level < VehicleReader.HVAC_FAN_MIN || level > VehicleReader.HVAC_FAN_AUTO) {
+            MghaLog.w(TAG, "geçersiz klima fan: " + level + " (1–11, 12=oto)");
+            return;
+        }
+        if (level > 11 && level < VehicleReader.HVAC_FAN_AUTO) {
+            MghaLog.w(TAG, "geçersiz klima fan: " + level + " (1–11, 12=oto)");
+            return;
+        }
+        if (sLastHvacFanLevel != null && sLastHvacFanLevel.equals(level)) {
+            return;
+        }
+        if (!VehicleReader.setHvacFanSpeed(level)) {
+            MghaLog.w(TAG, "klima fan yazılamadı → " + level);
+            return;
+        }
+        sLastHvacFanLevel = level;
+        MghaLog.i(TAG, "klima fan " + level + " ← " + entity);
     }
 
     private static void pollMediaVolume(Context ctx, HomeAssistantClient client, String prefix) {
@@ -140,6 +168,14 @@ public final class HaCommandPoller {
         }
     }
 
+    public static void noteHvacFanFromCar(int level) {
+        if (level >= VehicleReader.HVAC_FAN_MIN && level <= VehicleReader.HVAC_FAN_MAX_MANUAL) {
+            sLastHvacFanLevel = level;
+        } else if (level == VehicleReader.HVAC_FAN_AUTO) {
+            sLastHvacFanLevel = level;
+        }
+    }
+
     public static void noteMediaVolumeFromCar(int level) {
         if (level >= 0 && level <= 32) {
             sLastMediaVolume = level;
@@ -150,6 +186,7 @@ public final class HaCommandPoller {
         sLastHvacOn = null;
         sLastChargeLimitPct = null;
         sLastHvacTempC = null;
+        sLastHvacFanLevel = null;
         sLastMediaVolume = null;
     }
 }

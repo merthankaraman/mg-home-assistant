@@ -123,7 +123,11 @@ public class HomeAssistantClient {
         if (!r.ok || r.body == null || r.body.isEmpty()) return null;
         try {
             JSONObject o = new JSONObject(r.body);
-            return o.optString("state", "").trim().toLowerCase();
+            String state = o.optString("state", "").trim().toLowerCase();
+            if ("unknown".equals(state) || "unavailable".equals(state)) {
+                return null;
+            }
+            return state;
         } catch (Exception e) {
             return null;
         }

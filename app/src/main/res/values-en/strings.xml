@@ -141,6 +141,8 @@
     <string name="preview_hvac_on">on</string>
     <string name="preview_hvac_off">off</string>
     <string name="preview_hvac_temp">Climate setpoint: %1$s\n</string>
+    <string name="preview_hvac_fan">Climate fan: %1$s\n</string>
+    <string name="preview_hvac_fan_auto">auto</string>
     <string name="preview_media_volume">Media volume: %1$s\n</string>
     <string name="preview_charge">Charging: %1$s\n</string>
     <string name="preview_charge_remaining">Remaining: %1$s\n</string>

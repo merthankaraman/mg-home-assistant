@@ -49,6 +49,8 @@ public class VehicleSnapshot {
     public Boolean hvacOn;
     /** Hedef klima °C (getDrvTemp); okunamazsa -1. */
     public int hvacTempC = -1;
+    /** Klima fan hızı (1–11, 12=otomatik); okunamazsa -1. */
+    public int hvacFanLevel = -1;
     /** Multimedya ses seviyesi (0–32); okunamazsa -1. */
     public int mediaVolumeLevel = -1;
 
@@ -67,6 +69,7 @@ public class VehicleSnapshot {
         sb.append(ctx.getString(R.string.preview_hvac, fmtHvacOn(ctx, hvacOn)));
         sb.append(ctx.getString(R.string.preview_hvac_temp,
                 fmtInt(ctx, hvacTempC, R.string.fmt_celsius)));
+        sb.append(ctx.getString(R.string.preview_hvac_fan, fmtHvacFan(ctx)));
         sb.append(ctx.getString(R.string.preview_media_volume,
                 fmtInt(ctx, mediaVolumeLevel, R.string.fmt_plain)));
         sb.append('\n');
@@ -133,6 +136,14 @@ public class VehicleSnapshot {
     private static String fmtHvacOn(Context ctx, Boolean on) {
         if (on == null) return ctx.getString(R.string.preview_unknown);
         return ctx.getString(on ? R.string.preview_hvac_on : R.string.preview_hvac_off);
+    }
+
+    private String fmtHvacFan(Context ctx) {
+        if (hvacFanLevel < 1) return ctx.getString(R.string.preview_unknown);
+        if (hvacFanLevel == VehicleReader.HVAC_FAN_AUTO) {
+            return ctx.getString(R.string.preview_hvac_fan_auto);
+        }
+        return String.valueOf(hvacFanLevel);
     }
 
     private String fmtGps(Context ctx) {

@@ -141,6 +141,8 @@
     <string name="preview_hvac_on">açık</string>
     <string name="preview_hvac_off">kapalı</string>
     <string name="preview_hvac_temp">Klima hedefi: %1$s\n</string>
+    <string name="preview_hvac_fan">Klima fanı: %1$s\n</string>
+    <string name="preview_hvac_fan_auto">otomatik</string>
     <string name="preview_media_volume">Multimedya sesi: %1$s\n</string>
     <string name="preview_charge">Şarj: %1$s\n</string>
     <string name="preview_charge_remaining">Kalan süre: %1$s\n</string>

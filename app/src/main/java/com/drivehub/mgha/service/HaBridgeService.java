@@ -61,6 +61,7 @@ public class HaBridgeService extends Service {
     private Integer lastPublishedChargeLimit;
     private Boolean lastPublishedHvac;
     private Integer lastPublishedHvacTemp;
+    private Integer lastPublishedHvacFan;
     private Integer lastPublishedMediaVolume;
 
     private final Runnable tickRunnable = this::tick;
@@ -145,6 +146,13 @@ public class HaBridgeService extends Service {
                 changed = true;
             }
         }
+        if (snap.hvacFanLevel >= VehicleReader.HVAC_FAN_MIN
+                && (snap.hvacFanLevel <= VehicleReader.HVAC_FAN_MAX_MANUAL
+                || snap.hvacFanLevel == VehicleReader.HVAC_FAN_AUTO)) {
+            if (lastPublishedHvacFan != null && lastPublishedHvacFan != snap.hvacFanLevel) {
+                changed = true;
+            }
+        }
         if (snap.mediaVolumeLevel >= 0 && snap.mediaVolumeLevel <= 32) {
             if (lastPublishedMediaVolume != null
                     && lastPublishedMediaVolume != snap.mediaVolumeLevel) {
@@ -164,6 +172,11 @@ public class HaBridgeService extends Service {
         }
         if (snap.hvacTempC >= 16 && snap.hvacTempC <= 30) {
             lastPublishedHvacTemp = snap.hvacTempC;
+        }
+        if (snap.hvacFanLevel >= VehicleReader.HVAC_FAN_MIN
+                && (snap.hvacFanLevel <= VehicleReader.HVAC_FAN_MAX_MANUAL
+                || snap.hvacFanLevel == VehicleReader.HVAC_FAN_AUTO)) {
+            lastPublishedHvacFan = snap.hvacFanLevel;
         }
         if (snap.mediaVolumeLevel >= 0 && snap.mediaVolumeLevel <= 32) {
             lastPublishedMediaVolume = snap.mediaVolumeLevel;

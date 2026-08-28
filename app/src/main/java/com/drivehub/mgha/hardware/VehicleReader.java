@@ -60,6 +60,14 @@ public final class VehicleReader {
     private static final int PROP_TIRE_PRESSURE_RR = 0x21401556;
     /** Klima ana switch — CPM (area HVAC_ALL). */
     private static final int PROP_HVAC_POWER = 0x15402503;
+    /** Otomatik klima — getAutoStatus / setAutoStatus (area HVAC_ALL). */
+    private static final int PROP_HVAC_AUTO = 0x15402502;
+    /** Fan hızı — getAirVolumeLevel / setAirVolumeLevel (area HVAC_ALL), 1–11. */
+    private static final int PROP_HVAC_FAN = 0x1540250D;
+    public static final int HVAC_FAN_MIN = 1;
+    public static final int HVAC_FAN_MAX_MANUAL = 11;
+    /** HA/poll için otomatik fan temsili; CPM'de ayrı {@link #PROP_HVAC_AUTO}. */
+    public static final int HVAC_FAN_AUTO = 12;
     /** Sürücü hedef °C — getDrvTemp / setDrvTemp (area HVAC_LEFT, float). */
     private static final int PROP_DRV_TEMP = 0x1560250B;
     /** Dış ortam °C — getOutCarTemp (area HVAC_ALL). */
@@ -172,6 +180,46 @@ public final class VehicleReader {
             ensureReady(sAppContext);
         }
         return setFloatArea(PROP_DRV_TEMP, AREA_HVAC_LEFT, (float) tempC);
+    }
+
+    /** Klima fan hızı — manuel 1–11; {@link #HVAC_FAN_AUTO} → {@code PROP_HVAC_AUTO}. */
+    public static boolean setHvacFanSpeed(int level) {
+        if (level < HVAC_FAN_MIN || level > HVAC_FAN_AUTO) return false;
+        if (level > HVAC_FAN_MAX_MANUAL && level < HVAC_FAN_AUTO) return false;
+        if (sAppContext != null && HaSettings.demoMode(sAppContext)) {
+            MghaLog.i(TAG, "demo: setHvacFanSpeed(" + level + ")");
+            return true;
+        }
+        if (sAppContext != null && !WifiHelper.isSim()) {
+            ensureReady(sAppContext);
+        }
+        if (level == HVAC_FAN_AUTO) {
+            return setHvacAuto(true);
+        }
+        if (!setHvacAuto(false)) {
+            MghaLog.w(TAG, "klima auto kapatılamadı, fan yine de yazılıyor");
+        }
+        return setIntArea(PROP_HVAC_FAN, AREA_HVAC, level);
+    }
+
+    private static boolean setHvacAuto(boolean on) {
+        return setIntArea(PROP_HVAC_AUTO, AREA_HVAC, on ? 1 : 0);
+    }
+
+    private static boolean isHvacAutoOn() {
+        int raw = getIntArea(PROP_HVAC_AUTO, AREA_HVAC);
+        return raw == 1;
+    }
+
+    private static int readHvacFanSpeed() {
+        if (isHvacAutoOn()) {
+            return HVAC_FAN_AUTO;
+        }
+        int v = getIntArea(PROP_HVAC_FAN, AREA_HVAC);
+        if (v >= HVAC_FAN_MIN && v <= HVAC_FAN_MAX_MANUAL) {
+            return v;
+        }
+        return -1;
     }
 
     private static int readDriverTempC() {
@@ -461,6 +509,7 @@ public final class VehicleReader {
         s.exteriorTempC = readOutsideTempC();
         s.hvacOn = hvacOnFromCpm(getIntArea(PROP_HVAC_POWER, AREA_HVAC));
         s.hvacTempC = readDriverTempC();
+        s.hvacFanLevel = readHvacFanSpeed();
         s.mediaVolumeLevel = readMediaVolumeLevel();
 
         s.tireKpaFl = getInt(PROP_TIRE_PRESSURE_FL);
@@ -509,6 +558,7 @@ public final class VehicleReader {
                 + " outC=" + s.exteriorTempC
                 + " hvac=" + s.hvacOn
                 + " hvacT=" + s.hvacTempC
+                + " hvacFan=" + s.hvacFanLevel
                 + " media=" + s.mediaVolumeLevel
                 + " gps=" + (Double.isNaN(s.latitude) ? "none" : (s.latitude + "," + s.longitude))
                 + " bmsCache=" + sBmsCache.size());

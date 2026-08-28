@@ -3,6 +3,7 @@ package com.drivehub.mgha.ha;
 import android.content.Context;
 
 import com.drivehub.mgha.R;
+import com.drivehub.mgha.hardware.VehicleReader;
 import com.drivehub.mgha.hardware.VehicleSnapshot;
 import com.drivehub.mgha.util.MghaLog;
 
@@ -48,6 +49,11 @@ public final class HaPublisher {
             }
             if (snap.hvacTempC >= 16 && snap.hvacTempC <= 30) {
                 HaCommandPoller.noteHvacTempFromCar(snap.hvacTempC);
+            }
+            if (snap.hvacFanLevel >= VehicleReader.HVAC_FAN_MIN
+                    && (snap.hvacFanLevel <= VehicleReader.HVAC_FAN_MAX_MANUAL
+                    || snap.hvacFanLevel == VehicleReader.HVAC_FAN_AUTO)) {
+                HaCommandPoller.noteHvacFanFromCar(snap.hvacFanLevel);
             }
             if (snap.mediaVolumeLevel >= 0 && snap.mediaVolumeLevel <= 32) {
                 HaCommandPoller.noteMediaVolumeFromCar(snap.mediaVolumeLevel);
@@ -135,6 +141,7 @@ public final class HaPublisher {
                 o.put("hvac", snap.hvacOn);
             }
             putInt(o, "hvac_temp", snap.hvacTempC);
+            putInt(o, "hvac_fan", snap.hvacFanLevel);
             putInt(o, "media_volume", snap.mediaVolumeLevel);
             putInt(o, "range", snap.rangeKm);
             putInt(o, "mileage", snap.odometerKm);
@@ -266,6 +273,11 @@ public final class HaPublisher {
         }
         if (out.ok > 0 && snap.hvacTempC >= 16 && snap.hvacTempC <= 30) {
             HaCommandPoller.noteHvacTempFromCar(snap.hvacTempC);
+        }
+        if (out.ok > 0 && snap.hvacFanLevel >= VehicleReader.HVAC_FAN_MIN
+                && (snap.hvacFanLevel <= VehicleReader.HVAC_FAN_MAX_MANUAL
+                || snap.hvacFanLevel == VehicleReader.HVAC_FAN_AUTO)) {
+            HaCommandPoller.noteHvacFanFromCar(snap.hvacFanLevel);
         }
         if (out.ok > 0 && snap.mediaVolumeLevel >= 0 && snap.mediaVolumeLevel <= 32) {
             HaCommandPoller.noteMediaVolumeFromCar(snap.mediaVolumeLevel);
