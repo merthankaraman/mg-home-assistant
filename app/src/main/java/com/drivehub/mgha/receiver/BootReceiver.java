@@ -26,6 +26,10 @@ public class BootReceiver extends BroadcastReceiver {
                 MghaLog.i(TAG, "boot → WiFi aç");
                 WifiHelper.ensureWifiEnabled(context);
             }
+            if (!WifiHelper.isSim()) {
+                WifiHelper.maintainWifiConnection(context,
+                        HaSettings.wifiOnBoot(context) || HaSettings.wifiOnly(context), true);
+            }
             context.startForegroundService(new Intent(context, HaBridgeService.class));
         }
     }

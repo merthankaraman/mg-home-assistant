@@ -84,6 +84,10 @@ public class HaBridgeService extends Service {
         if (HaSettings.wifiOnBoot(this)) {
             WifiHelper.ensureWifiEnabled(this);
         }
+        if (!WifiHelper.isSim()) {
+            WifiHelper.maintainWifiConnection(this,
+                    HaSettings.wifiOnBoot(this) || HaSettings.wifiOnly(this), true);
+        }
         BridgeStatus.running = true;
         BridgeStatus.lastMessage = getString(R.string.msg_service_started);
         registerNetworkCallback();
@@ -169,6 +173,10 @@ public class HaBridgeService extends Service {
                     + " url=" + HaSettings.url(this));
 
             if (!allowed) {
+                if (!WifiHelper.isSim()) {
+                    WifiHelper.maintainWifiConnection(this,
+                            HaSettings.wifiOnBoot(this) || HaSettings.wifiOnly(this));
+                }
                 BridgeStatus.lastMessage = WifiHelper.isSim()
                         ? getString(R.string.msg_no_internet_sim, WifiHelper.describe(this))
                         : (HaSettings.wifiOnly(this)
@@ -283,6 +291,16 @@ public class HaBridgeService extends Service {
         }
         NetworkRequest req = b.build();
         networkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onLost(@NonNull Network network) {
+                if (!WifiHelper.isSim()) {
+                    WifiHelper.maintainWifiConnection(HaBridgeService.this,
+                            HaSettings.wifiOnBoot(HaBridgeService.this)
+                                    || HaSettings.wifiOnly(HaBridgeService.this), true);
+                }
+                scheduleTickSoon("onLost");
+            }
+
             @Override
             public void onAvailable(@NonNull Network network) {
                 scheduleTickSoon("onAvailable");

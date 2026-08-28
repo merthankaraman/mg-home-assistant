@@ -6,6 +6,8 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.wifi.WifiManager;
 import android.os.Build;
+import android.os.SystemClock;
+
 import com.drivehub.mgha.BuildConfig;
 import com.drivehub.mgha.R;
 import com.drivehub.mgha.util.MghaLog;
@@ -16,6 +18,10 @@ import com.drivehub.mgha.util.MghaLog;
  */
 public final class WifiHelper {
     private static final String TAG = "MGHA_WIFI";
+    /** OEM tarama sınırına takılmamak için minimum aralık. */
+    private static final long SCAN_INTERVAL_MS = 30_000L;
+
+    private static long lastScanElapsedMs;
 
     private WifiHelper() {}
 
@@ -62,6 +68,52 @@ public final class WifiHelper {
             return hasWifiInternet(ctx);
         }
         return hasAnyInternet(ctx);
+    }
+
+    /**
+     * WiFi kapalıysa açar; kayıtlı ağa yeniden bağlanmak için tarama tetikler.
+     * Ayarlar ekranına girmeden aralıklı çalışması için servisten çağrılır.
+     *
+     * @param enableIfOff WiFi kapalıysa radyoyu aç (wifiOnBoot / wifiOnly)
+     * @param force       true ise tarama aralığını yok say
+     */
+    @SuppressWarnings("deprecation")
+    public static void maintainWifiConnection(Context ctx, boolean enableIfOff, boolean force) {
+        if (isSim()) return;
+        if (hasWifiInternet(ctx)) return;
+
+        long now = SystemClock.elapsedRealtime();
+        if (!force && now - lastScanElapsedMs < SCAN_INTERVAL_MS) return;
+
+        try {
+            WifiManager wm = (WifiManager) ctx.getApplicationContext()
+                    .getSystemService(Context.WIFI_SERVICE);
+            if (wm == null) {
+                MghaLog.w(TAG, "WifiManager yok");
+                return;
+            }
+            if (!wm.isWifiEnabled()) {
+                if (!enableIfOff) {
+                    MghaLog.i(TAG, "WiFi kapalı, açma atlandı (enableIfOff=false)");
+                    return;
+                }
+                if (!wm.setWifiEnabled(true)) {
+                    MghaLog.w(TAG, "setWifiEnabled(true) başarısız");
+                    return;
+                }
+                MghaLog.i(TAG, "WiFi açıldı, tarama bekleniyor");
+            }
+            lastScanElapsedMs = now;
+            boolean scan = wm.startScan();
+            boolean reconnect = wm.reconnect();
+            MghaLog.i(TAG, "WiFi tarama/bağlan → startScan=" + scan + " reconnect=" + reconnect);
+        } catch (Throwable t) {
+            MghaLog.w(TAG, "WiFi tarama/bağlan: " + t.getMessage());
+        }
+    }
+
+    public static void maintainWifiConnection(Context ctx, boolean enableIfOff) {
+        maintainWifiConnection(ctx, enableIfOff, false);
     }
 
     /**
