@@ -21,6 +21,7 @@ public final class DemoData {
         s.rangeKm = 236 + wave * 2;
         s.odometerKm = 18432;
         s.exteriorTempC = 16 + (wave % 4);
+        s.hvacOn = (wave % 3) != 0;
         s.tireKpaFl = 238 + wave;
         s.tireKpaFr = 241;
         s.tireKpaRl = 235 + wave / 2;

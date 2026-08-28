@@ -40,6 +40,12 @@ public final class HaPublisher {
         if (push.ok) {
             out.ok = 1;
             out.viaBridge = true;
+            if (snap.chargeLimitPercent >= 40 && snap.chargeLimitPercent <= 100) {
+                HaCommandPoller.noteChargeLimitFromCar(snap.chargeLimitPercent);
+            }
+            if (snap.hvacOn != null) {
+                HaCommandPoller.noteHvacFromCar(snap.hvacOn);
+            }
             return out;
         }
         // Yalnızca servis yoksa REST; ağ/SSL hatasında fallback yağmuru yapma
@@ -86,7 +92,6 @@ public final class HaPublisher {
                 binAttrs(ctx.getString(R.string.ha_name_charging)));
         String[] sensors = {
                 "sensor." + p + "_battery",
-                "sensor." + p + "_charge_limit",
                 "sensor." + p + "_range",
                 "sensor." + p + "_mileage",
                 "sensor." + p + "_exterior_temperature",
@@ -120,6 +125,9 @@ public final class HaPublisher {
             o.put("last_update", isoUtc(snap.capturedAtMs));
             putNum(o, "battery", snap.socPercent);
             putInt(o, "charge_limit", snap.chargeLimitPercent);
+            if (snap.hvacOn != null) {
+                o.put("hvac", snap.hvacOn);
+            }
             putInt(o, "range", snap.rangeKm);
             putInt(o, "mileage", snap.odometerKm);
             putInt(o, "exterior_temperature", snap.exteriorTempC);
@@ -198,8 +206,6 @@ public final class HaPublisher {
                 attrs(ctx.getString(R.string.ha_name_mileage), "km", "distance", "total_increasing", "mdi:counter"));
         postNum(client, out, members, "sensor." + p + "_battery", snap.socPercent,
                 attrs(ctx.getString(R.string.ha_name_battery), "%", "battery", "measurement", "mdi:battery"));
-        postInt(client, out, members, "sensor." + p + "_charge_limit", snap.chargeLimitPercent,
-                attrs(ctx.getString(R.string.ha_name_charge_limit), "%", null, "measurement", "mdi:battery-charging-80"));
         postInt(client, out, members, "sensor." + p + "_range", snap.rangeKm,
                 attrs(ctx.getString(R.string.ha_name_range), "km", "distance", "measurement", "mdi:map-marker-distance"));
         postInt(client, out, members, "sensor." + p + "_exterior_temperature", snap.exteriorTempC,
@@ -243,6 +249,12 @@ public final class HaPublisher {
                 attrs(ctx.getString(R.string.ha_name_ac_charging_power), "kW", "power", "measurement", "mdi:flash"));
         if (members.length() > 0) {
             ensureGroup(ctx, client, out, p, members);
+        }
+        if (out.ok > 0 && snap.chargeLimitPercent >= 40 && snap.chargeLimitPercent <= 100) {
+            HaCommandPoller.noteChargeLimitFromCar(snap.chargeLimitPercent);
+        }
+        if (out.ok > 0 && snap.hvacOn != null) {
+            HaCommandPoller.noteHvacFromCar(snap.hvacOn);
         }
         return out;
     }

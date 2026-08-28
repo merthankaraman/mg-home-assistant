@@ -99,15 +99,31 @@ public class HomeAssistantClient {
 
     /** {@code /api/states/{entity_id}} — switch on/off veya unavailable. */
     public Boolean getSwitchState(String entityId) {
+        String state = getEntityState(entityId);
+        if (state == null) return null;
+        if ("on".equals(state)) return true;
+        if ("off".equals(state)) return false;
+        return null;
+    }
+
+    /** {@code /api/states/{entity_id}} — number değeri; geçersizse null. */
+    public Integer getNumberState(String entityId) {
+        String state = getEntityState(entityId);
+        if (state == null) return null;
+        try {
+            return (int) Math.round(Double.parseDouble(state));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private String getEntityState(String entityId) {
         if (entityId == null || entityId.trim().isEmpty()) return null;
         Result r = request("GET", "/api/states/" + entityId.trim(), null);
         if (!r.ok || r.body == null || r.body.isEmpty()) return null;
         try {
             JSONObject o = new JSONObject(r.body);
-            String state = o.optString("state", "").trim().toLowerCase();
-            if ("on".equals(state)) return true;
-            if ("off".equals(state)) return false;
-            return null;
+            return o.optString("state", "").trim().toLowerCase();
         } catch (Exception e) {
             return null;
         }

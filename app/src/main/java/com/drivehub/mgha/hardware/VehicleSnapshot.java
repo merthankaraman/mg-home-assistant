@@ -45,6 +45,9 @@ public class VehicleSnapshot {
     /** DC istasyon teklif gücü: batarya V × beklenen A. */
     public float stationDcPowerKw = Float.NaN;
 
+    /** Klima açık (PROP_HVAC_POWER); okunamazsa null. */
+    public Boolean hvacOn;
+
     public String formatForScreen(Context ctx) {
         StringBuilder sb = new StringBuilder();
         if (demo) {

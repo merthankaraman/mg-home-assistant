@@ -160,6 +160,32 @@ public final class VehicleReader {
         }
     }
 
+    /** Ham 1..7 → %40..%100 */
+    public static int chargeLimitStepToPercent(int step) {
+        if (step < 1 || step > 7) return -1;
+        return 40 + (step - 1) * 10;
+    }
+
+    /** %40..%100 (10'ar) → ham 1..7 */
+    public static int chargeLimitPercentToStep(int percent) {
+        if (percent < 40 || percent > 100 || percent % 10 != 0) return -1;
+        return (percent - 40) / 10 + 1;
+    }
+
+    /** Hedef şarj sınırı — CPM {@code PROP_CHARGE_LIMIT_SOC}. */
+    public static boolean setChargeLimitPercent(int percent) {
+        int step = chargeLimitPercentToStep(percent);
+        if (step < 0) return false;
+        if (sAppContext != null && HaSettings.demoMode(sAppContext)) {
+            MghaLog.i(TAG, "demo: setChargeLimitPercent(" + percent + ") step=" + step);
+            return true;
+        }
+        if (sAppContext != null && !WifiHelper.isSim()) {
+            ensureReady(sAppContext);
+        }
+        return setIntArea(PROP_CHARGE_LIMIT_SOC, AREA_GLOBAL, step);
+    }
+
     /** Konum izni sonradan verilince servisten çağrılabilir. */
     public static synchronized void startGpsUpdates(Context context) {
         if (context == null) return;
@@ -244,11 +270,15 @@ public final class VehicleReader {
         s.socPercent = firstFloat(getFloat(PROP_SOC), bmsFloat(PROP_SOC));
         int limitStep = firstInt(getInt(PROP_CHARGE_LIMIT_SOC), bmsInt(PROP_CHARGE_LIMIT_SOC));
         if (limitStep >= 1 && limitStep <= 7) {
-            s.chargeLimitPercent = 40 + (limitStep - 1) * 10;
+            s.chargeLimitPercent = chargeLimitStepToPercent(limitStep);
         }
         s.rangeKm = firstInt(getInt(PROP_RANGE), bmsInt(PROP_RANGE));
         s.odometerKm = getInt(PROP_TOTAL_MILEAGE);
         s.exteriorTempC = readOutsideTempC();
+        int hvacRaw = getIntArea(PROP_HVAC_POWER, AREA_HVAC);
+        if (hvacRaw == 0 || hvacRaw == 1) {
+            s.hvacOn = hvacRaw == 1;
+        }
 
         s.tireKpaFl = getInt(PROP_TIRE_PRESSURE_FL);
         s.tireKpaFr = getInt(PROP_TIRE_PRESSURE_FR);
@@ -294,6 +324,7 @@ public final class VehicleReader {
                 + " chg=" + s.chargeStatus
                 + " tires=" + s.tireKpaFl + "/" + s.tireKpaFr + "/" + s.tireKpaRl + "/" + s.tireKpaRr
                 + " outC=" + s.exteriorTempC
+                + " hvac=" + s.hvacOn
                 + " gps=" + (Double.isNaN(s.latitude) ? "none" : (s.latitude + "," + s.longitude))
                 + " bmsCache=" + sBmsCache.size());
         return s;
@@ -595,12 +626,12 @@ public final class VehicleReader {
 
     private static final ConcurrentHashMap<Integer, Boolean> sLoggedPropErr = new ConcurrentHashMap<>();
 
-    private static int getInt(int propId) {
+    private static int getIntArea(int propId, int area) {
         if (sCarPropertyManager == null) return -1;
         try {
             Method getProperty = sCarPropertyManager.getClass()
                     .getMethod("getProperty", Class.class, int.class, int.class);
-            Object cpv = getProperty.invoke(sCarPropertyManager, Integer.class, propId, AREA_GLOBAL);
+            Object cpv = getProperty.invoke(sCarPropertyManager, Integer.class, propId, area);
             if (cpv == null) return -1;
             Object v = cpv.getClass().getMethod("getValue").invoke(cpv);
             return v instanceof Number ? ((Number) v).intValue() : -1;
@@ -608,6 +639,10 @@ public final class VehicleReader {
             logPropErrOnce(propId, t);
             return -1;
         }
+    }
+
+    private static int getInt(int propId) {
+        return getIntArea(propId, AREA_GLOBAL);
     }
 
     private static float getFloat(int propId) {
