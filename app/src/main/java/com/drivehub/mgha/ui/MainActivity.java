@@ -54,6 +54,8 @@ public class MainActivity extends AppCompatActivity {
     private CheckBox autoStartView;
     private CheckBox wifiOnBootView;
     private CheckBox verboseLogView;
+    private CheckBox pollEnabledView;
+    private EditText pollIntervalView;
     private TextView statusView;
     private TextView previewView;
     private Button startStopBtn;
@@ -99,6 +101,8 @@ public class MainActivity extends AppCompatActivity {
         autoStartView = findViewById(R.id.check_autostart);
         wifiOnBootView = findViewById(R.id.check_wifi_on_boot);
         verboseLogView = findViewById(R.id.check_verbose_log);
+        pollEnabledView = findViewById(R.id.check_poll_enabled);
+        pollIntervalView = findViewById(R.id.input_poll_interval);
         statusView = findViewById(R.id.text_status);
         previewView = findViewById(R.id.text_preview);
         startStopBtn = findViewById(R.id.btn_start_stop);
@@ -187,6 +191,8 @@ public class MainActivity extends AppCompatActivity {
         autoStartView.setChecked(HaSettings.autoStart(this));
         wifiOnBootView.setChecked(HaSettings.wifiOnBoot(this));
         verboseLogView.setChecked(HaSettings.verboseLog(this));
+        pollEnabledView.setChecked(HaSettings.pollEnabled(this));
+        pollIntervalView.setText(String.valueOf(HaSettings.pollIntervalSec(this)));
     }
 
     private void requestNotifyPermission() {
@@ -228,8 +234,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void saveSettings() {
         int interval = 1;
+        int pollSec = 30;
         try {
             interval = Integer.parseInt(intervalView.getText().toString().trim());
+        } catch (Exception ignored) {}
+        try {
+            pollSec = Integer.parseInt(pollIntervalView.getText().toString().trim());
         } catch (Exception ignored) {}
         HaSettings.save(this,
                 urlView.getText().toString(),
@@ -240,7 +250,9 @@ public class MainActivity extends AppCompatActivity {
                 insecureView.isChecked(),
                 autoStartView.isChecked(),
                 wifiOnBootView.isChecked(),
-                verboseLogView.isChecked());
+                verboseLogView.isChecked(),
+                pollEnabledView.isChecked(),
+                pollSec);
         Toast.makeText(this, R.string.toast_saved, Toast.LENGTH_SHORT).show();
         refreshStatus();
     }

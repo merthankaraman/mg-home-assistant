@@ -220,6 +220,43 @@
             android:text="@string/check_verbose_log"
             android:textColor="@color/text" />
 
+        <CheckBox
+            android:id="@+id/check_poll_enabled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/check_poll_enabled"
+            android:textColor="@color/text" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_weight="1"
+                android:text="@string/label_poll_interval"
+                android:textColor="@color/muted"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/input_poll_interval"
+                android:layout_width="96dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_field"
+                android:hint="@string/hint_poll_interval"
+                android:importantForAutofill="no"
+                android:inputType="number"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:text="@string/default_poll_interval"
+                android:textColor="@color/text"
+                android:textColorHint="@color/muted" />
+        </LinearLayout>
+
         <LinearLayout
             style="?android:attr/buttonBarStyle"
             android:layout_width="match_parent"

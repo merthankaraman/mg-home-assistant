@@ -23,6 +23,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 import com.drivehub.mgha.R;
+import com.drivehub.mgha.ha.HaCommandPoller;
 import com.drivehub.mgha.ha.HaPublisher;
 import com.drivehub.mgha.ha.HomeAssistantClient;
 import com.drivehub.mgha.hardware.VehicleReader;
@@ -58,6 +59,37 @@ public class HaBridgeService extends Service {
     private long nextDelayMs = -1L;
 
     private final Runnable tickRunnable = this::tick;
+    private final Runnable pollRunnable = this::pollTick;
+
+    private void pollTick() {
+        try {
+            HaCommandPoller.poll(this);
+        } catch (Throwable t) {
+            MghaLog.w(TAG, "poll: " + t.getMessage());
+        } finally {
+            schedulePoll();
+        }
+    }
+
+    private void schedulePoll() {
+        if (shuttingDown || worker == null) return;
+        worker.removeCallbacks(pollRunnable);
+        if (!HaSettings.pollEnabled(this)) {
+            HaCommandPoller.resetCache();
+            return;
+        }
+        worker.postDelayed(pollRunnable, HaSettings.pollIntervalMs(this));
+    }
+
+    private void startPollLoop() {
+        if (shuttingDown || worker == null) return;
+        worker.removeCallbacks(pollRunnable);
+        if (!HaSettings.pollEnabled(this)) {
+            HaCommandPoller.resetCache();
+            return;
+        }
+        worker.post(pollRunnable);
+    }
 
     @Override
     public void onCreate() {
@@ -92,6 +124,7 @@ public class HaBridgeService extends Service {
         BridgeStatus.lastMessage = getString(R.string.msg_service_started);
         registerNetworkCallback();
         worker.post(tickRunnable);
+        startPollLoop();
         broadcastStatus();
     }
 
@@ -103,6 +136,7 @@ public class HaBridgeService extends Service {
             worker.removeCallbacks(tickRunnable);
             worker.post(tickRunnable);
         }
+        startPollLoop();
         return START_STICKY;
     }
 

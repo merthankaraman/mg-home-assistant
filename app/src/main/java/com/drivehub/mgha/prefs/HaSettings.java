@@ -20,6 +20,8 @@ public final class HaSettings {
     public static final String KEY_WIFI_ON_BOOT = "wifi_on_boot";
     public static final String KEY_VERBOSE_LOG = "verbose_log";
     public static final String KEY_DEMO = "demo_mode";
+    public static final String KEY_POLL_ENABLED = "poll_enabled";
+    public static final String KEY_POLL_INTERVAL_SEC = "poll_interval_sec";
 
     private static volatile boolean sVerboseLog;
 
@@ -50,6 +52,19 @@ public final class HaSettings {
 
     public static long intervalMs(Context ctx) {
         return intervalMin(ctx) * 60_000L;
+    }
+
+    /** HA komut poll (sn). En az 10; varsayılan 30. */
+    public static int pollIntervalSec(Context ctx) {
+        return Math.max(10, prefs(ctx).getInt(KEY_POLL_INTERVAL_SEC, 30));
+    }
+
+    public static long pollIntervalMs(Context ctx) {
+        return pollIntervalSec(ctx) * 1000L;
+    }
+
+    public static boolean pollEnabled(Context ctx) {
+        return prefs(ctx).getBoolean(KEY_POLL_ENABLED, false);
     }
 
     public static boolean wifiOnly(Context ctx) {
@@ -101,7 +116,8 @@ public final class HaSettings {
 
     public static void save(Context ctx, String url, String token, String prefix,
                             int intervalMin, boolean wifiOnly, boolean insecure,
-                            boolean autoStart, boolean wifiOnBoot, boolean verboseLog) {
+                            boolean autoStart, boolean wifiOnBoot, boolean verboseLog,
+                            boolean pollEnabled, int pollIntervalSec) {
         prefs(ctx).edit()
                 .putString(KEY_URL, url == null ? "" : url.trim())
                 .putString(KEY_TOKEN, token == null ? "" : token.trim())
@@ -112,6 +128,8 @@ public final class HaSettings {
                 .putBoolean(KEY_AUTOSTART, autoStart)
                 .putBoolean(KEY_WIFI_ON_BOOT, wifiOnBoot)
                 .putBoolean(KEY_VERBOSE_LOG, verboseLog)
+                .putBoolean(KEY_POLL_ENABLED, pollEnabled)
+                .putInt(KEY_POLL_INTERVAL_SEC, Math.max(10, pollIntervalSec))
                 .apply();
         refreshVerboseCache(ctx);
     }
@@ -127,7 +145,9 @@ public final class HaSettings {
                 o.optBoolean("insecure", false),
                 o.optBoolean("autoStart", true),
                 o.optBoolean("wifiOnBoot", !WifiHelper.isSim()),
-                o.optBoolean("verboseLog", false));
+                o.optBoolean("verboseLog", false),
+                o.optBoolean("pollEnabled", false),
+                o.optInt("pollIntervalSec", 30));
         return true;
     }
 

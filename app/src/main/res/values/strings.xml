@@ -31,6 +31,10 @@
     <string name="check_autostart">Açılışta servisi başlat</string>
     <string name="check_wifi_on_boot">Açılışta WiFi aç</string>
     <string name="check_verbose_log">Ayrıntılı log (logcat)</string>
+    <string name="check_poll_enabled">HA komut çek</string>
+    <string name="label_poll_interval">Çekme tekrar süresi (sn)</string>
+    <string name="hint_poll_interval">30</string>
+    <string name="default_poll_interval">30</string>
     <string name="btn_save">Kaydet</string>
     <string name="btn_ha_test">HA test</string>
     <string name="btn_service_start">Servisi başlat</string>

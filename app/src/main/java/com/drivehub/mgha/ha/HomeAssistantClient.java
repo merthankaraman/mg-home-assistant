@@ -97,6 +97,22 @@ public class HomeAssistantClient {
         return request("POST", "/api/services/" + domain + "/" + service, body);
     }
 
+    /** {@code /api/states/{entity_id}} — switch on/off veya unavailable. */
+    public Boolean getSwitchState(String entityId) {
+        if (entityId == null || entityId.trim().isEmpty()) return null;
+        Result r = request("GET", "/api/states/" + entityId.trim(), null);
+        if (!r.ok || r.body == null || r.body.isEmpty()) return null;
+        try {
+            JSONObject o = new JSONObject(r.body);
+            String state = o.optString("state", "").trim().toLowerCase();
+            if ("on".equals(state)) return true;
+            if ("off".equals(state)) return false;
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private Result request(String method, String path, String jsonBody) {
         if (baseUrl.isEmpty()) return Result.fail(appCtx.getString(R.string.err_ha_url_empty));
         if (token.isEmpty()) return Result.fail(appCtx.getString(R.string.err_ha_token_empty));

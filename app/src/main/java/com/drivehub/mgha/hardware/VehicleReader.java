@@ -56,6 +56,8 @@ public final class VehicleReader {
     private static final int PROP_TIRE_PRESSURE_FR = 0x21401554;
     private static final int PROP_TIRE_PRESSURE_RL = 0x21401555;
     private static final int PROP_TIRE_PRESSURE_RR = 0x21401556;
+    /** Klima ana switch — MG4 binder/CPM (area HVAC_ALL). */
+    private static final int PROP_HVAC_POWER = 0x15402503;
     /** Dış ortam °C — AirConditionBinder.getOutCarTemp (area HVAC_ALL). */
     private static final int PROP_OUT_CAR_TEMP = 0x15602511;
     private static final float OUT_CAR_TEMP_INVALID = -10000f;
@@ -126,6 +128,36 @@ public final class VehicleReader {
 
     public static boolean isReady() {
         return sCarPropertyManager != null;
+    }
+
+    /** Klima aç/kapat — CPM {@code PROP_HVAC_POWER} area {@code AREA_HVAC}. */
+    public static boolean setHvacPower(boolean on) {
+        if (sAppContext != null && HaSettings.demoMode(sAppContext)) {
+            MghaLog.i(TAG, "demo: setHvacPower(" + on + ")");
+            return true;
+        }
+        if (sAppContext != null && !WifiHelper.isSim()) {
+            ensureReady(sAppContext);
+        }
+        return setIntArea(PROP_HVAC_POWER, AREA_HVAC, on ? 1 : 0);
+    }
+
+    private static boolean setIntArea(int propId, int area, int value) {
+        if (sCarPropertyManager == null) return false;
+        try {
+            Method setInt = sCarPropertyManager.getClass()
+                    .getMethod("setIntProperty", int.class, int.class, int.class);
+            setInt.invoke(sCarPropertyManager, propId, area, value);
+            MghaLog.i(TAG, "setInt 0x" + Integer.toHexString(propId)
+                    + " area=0x" + Integer.toHexString(area) + " val=" + value);
+            return true;
+        } catch (Throwable t) {
+            Throwable c = t instanceof java.lang.reflect.InvocationTargetException
+                    ? ((java.lang.reflect.InvocationTargetException) t).getCause() : t;
+            MghaLog.w(TAG, "setInt 0x" + Integer.toHexString(propId) + " "
+                    + (c != null ? c.getClass().getSimpleName() + ": " + c.getMessage() : t.toString()));
+            return false;
+        }
     }
 
     /** Konum izni sonradan verilince servisten çağrılabilir. */
