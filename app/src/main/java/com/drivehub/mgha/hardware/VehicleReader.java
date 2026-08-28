@@ -130,7 +130,7 @@ public final class VehicleReader {
         return sCarPropertyManager != null;
     }
 
-    /** Klima aç/kapat — CPM {@code PROP_HVAC_POWER} area {@code AREA_HVAC}. */
+    /** Klima aç/kapat — CPM {@code PROP_HVAC_POWER}: yazmada 1=toggle, okuma 0=kapalı 1=açık. */
     public static boolean setHvacPower(boolean on) {
         if (sAppContext != null && HaSettings.demoMode(sAppContext)) {
             MghaLog.i(TAG, "demo: setHvacPower(" + on + ")");
@@ -139,7 +139,23 @@ public final class VehicleReader {
         if (sAppContext != null && !WifiHelper.isSim()) {
             ensureReady(sAppContext);
         }
-        return setIntArea(PROP_HVAC_POWER, AREA_HVAC, on ? 1 : 0);
+        Boolean current = hvacOnFromCpm(getIntArea(PROP_HVAC_POWER, AREA_HVAC));
+        if (current != null && current == on) {
+            MghaLog.i(TAG, "hvac zaten " + (on ? "açık" : "kapalı"));
+            return true;
+        }
+        if (current == null) {
+            MghaLog.w(TAG, "hvac durumu okunamadı, toggle atlandı");
+            return false;
+        }
+        return setIntArea(PROP_HVAC_POWER, AREA_HVAC, 1);
+    }
+
+    /** CPM okuma: 0=kapalı, 1=açık. */
+    private static Boolean hvacOnFromCpm(int raw) {
+        if (raw == 0) return false;
+        if (raw == 1) return true;
+        return null;
     }
 
     private static boolean setIntArea(int propId, int area, int value) {
@@ -275,10 +291,7 @@ public final class VehicleReader {
         s.rangeKm = firstInt(getInt(PROP_RANGE), bmsInt(PROP_RANGE));
         s.odometerKm = getInt(PROP_TOTAL_MILEAGE);
         s.exteriorTempC = readOutsideTempC();
-        int hvacRaw = getIntArea(PROP_HVAC_POWER, AREA_HVAC);
-        if (hvacRaw == 0 || hvacRaw == 1) {
-            s.hvacOn = hvacRaw == 1;
-        }
+        s.hvacOn = hvacOnFromCpm(getIntArea(PROP_HVAC_POWER, AREA_HVAC));
 
         s.tireKpaFl = getInt(PROP_TIRE_PRESSURE_FL);
         s.tireKpaFr = getInt(PROP_TIRE_PRESSURE_FR);

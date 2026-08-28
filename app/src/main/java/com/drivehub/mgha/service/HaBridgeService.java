@@ -57,9 +57,15 @@ public class HaBridgeService extends Service {
     private long serviceStartElapsedMs;
     /** finally’de kullanılacak bir sonraki gecikme; -1 = normal interval. */
     private long nextDelayMs = -1L;
+    /** Son başarılı push'taki komut alanları (arabada değişince hemen tick). */
+    private Integer lastPublishedChargeLimit;
+    private Boolean lastPublishedHvac;
 
     private final Runnable tickRunnable = this::tick;
     private final Runnable pollRunnable = this::pollTick;
+    private final Runnable commandWatchRunnable = this::commandWatchTick;
+
+    private static final long COMMAND_WATCH_MS = 5_000L;
 
     private void pollTick() {
         try {
@@ -89,6 +95,57 @@ public class HaBridgeService extends Service {
             return;
         }
         worker.post(pollRunnable);
+    }
+
+    private void startCommandWatch() {
+        if (shuttingDown || worker == null) return;
+        worker.removeCallbacks(commandWatchRunnable);
+        worker.postDelayed(commandWatchRunnable, COMMAND_WATCH_MS);
+    }
+
+    /** Şarj sınırı / klima arabada değişince beklemeden HA'ya push. */
+    private void commandWatchTick() {
+        try {
+            if (!HaSettings.isConfigured(this)) return;
+            if (!WifiHelper.canSend(this, HaSettings.wifiOnly(this))) return;
+            VehicleSnapshot snap = VehicleReader.read();
+            if (commandTelemetryChanged(snap)) {
+                MghaLog.i(TAG, "komut telemetrisi değişti → anında tick");
+                worker.removeCallbacks(tickRunnable);
+                worker.post(tickRunnable);
+            }
+        } catch (Throwable t) {
+            MghaLog.w(TAG, "commandWatch: " + t.getMessage());
+        } finally {
+            startCommandWatch();
+        }
+    }
+
+    private boolean commandTelemetryChanged(VehicleSnapshot snap) {
+        if (snap == null) return false;
+        boolean changed = false;
+        if (snap.chargeLimitPercent >= 40 && snap.chargeLimitPercent <= 100) {
+            if (lastPublishedChargeLimit != null
+                    && lastPublishedChargeLimit != snap.chargeLimitPercent) {
+                changed = true;
+            }
+        }
+        if (snap.hvacOn != null) {
+            if (lastPublishedHvac != null && !lastPublishedHvac.equals(snap.hvacOn)) {
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
+    private void rememberPublishedCommandFields(VehicleSnapshot snap) {
+        if (snap == null) return;
+        if (snap.chargeLimitPercent >= 40 && snap.chargeLimitPercent <= 100) {
+            lastPublishedChargeLimit = snap.chargeLimitPercent;
+        }
+        if (snap.hvacOn != null) {
+            lastPublishedHvac = snap.hvacOn;
+        }
     }
 
     @Override
@@ -125,6 +182,7 @@ public class HaBridgeService extends Service {
         registerNetworkCallback();
         worker.post(tickRunnable);
         startPollLoop();
+        startCommandWatch();
         broadcastStatus();
     }
 
@@ -263,6 +321,7 @@ public class HaBridgeService extends Service {
             BridgeStatus.lastSendAtMs = System.currentTimeMillis();
             BridgeStatus.lastSendOk = r.fail == 0 && r.ok > 0;
             if (BridgeStatus.lastSendOk) {
+                rememberPublishedCommandFields(snap);
                 String dest = r.viaBridge
                         ? ("mg4_bridge/" + HaSettings.prefix(this))
                         : ("group." + HaSettings.prefix(this));
