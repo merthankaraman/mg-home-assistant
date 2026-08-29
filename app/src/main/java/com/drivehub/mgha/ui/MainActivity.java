@@ -49,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText tokenView;
     private EditText prefixView;
     private EditText intervalView;
+    private EditText intervalChargingView;
     private CheckBox wifiOnlyView;
     private CheckBox insecureView;
     private CheckBox autoStartView;
@@ -96,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
         tokenView = findViewById(R.id.input_token);
         prefixView = findViewById(R.id.input_prefix);
         intervalView = findViewById(R.id.input_interval);
+        intervalChargingView = findViewById(R.id.input_interval_charging);
         wifiOnlyView = findViewById(R.id.check_wifi_only);
         insecureView = findViewById(R.id.check_insecure);
         autoStartView = findViewById(R.id.check_autostart);
@@ -185,7 +187,8 @@ public class MainActivity extends AppCompatActivity {
         urlView.setText(HaSettings.url(this));
         tokenView.setText(HaSettings.token(this));
         prefixView.setText(HaSettings.prefix(this));
-        intervalView.setText(String.valueOf(HaSettings.intervalMin(this)));
+        intervalView.setText(String.valueOf(HaSettings.intervalNormalMin(this)));
+        intervalChargingView.setText(String.valueOf(HaSettings.intervalChargingSec(this)));
         wifiOnlyView.setChecked(HaSettings.wifiOnly(this));
         insecureView.setChecked(HaSettings.allowInsecureSsl(this));
         autoStartView.setChecked(HaSettings.autoStart(this));
@@ -233,10 +236,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveSettings() {
-        int interval = 1;
+        int intervalNormal = HaSettings.DEFAULT_INTERVAL_NORMAL_MIN;
+        int intervalCharging = HaSettings.DEFAULT_INTERVAL_CHARGING_SEC;
         int pollSec = 30;
         try {
-            interval = Integer.parseInt(intervalView.getText().toString().trim());
+            intervalNormal = Integer.parseInt(intervalView.getText().toString().trim());
+        } catch (Exception ignored) {}
+        try {
+            intervalCharging = Integer.parseInt(intervalChargingView.getText().toString().trim());
         } catch (Exception ignored) {}
         try {
             pollSec = Integer.parseInt(pollIntervalView.getText().toString().trim());
@@ -245,7 +252,8 @@ public class MainActivity extends AppCompatActivity {
                 urlView.getText().toString(),
                 tokenView.getText().toString(),
                 prefixView.getText().toString(),
-                interval,
+                intervalNormal,
+                intervalCharging,
                 wifiOnlyView.isChecked(),
                 insecureView.isChecked(),
                 autoStartView.isChecked(),

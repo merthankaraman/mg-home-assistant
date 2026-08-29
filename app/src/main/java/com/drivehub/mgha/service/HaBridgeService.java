@@ -57,12 +57,15 @@ public class HaBridgeService extends Service {
     private long serviceStartElapsedMs;
     /** finally’de kullanılacak bir sonraki gecikme; -1 = normal interval. */
     private long nextDelayMs = -1L;
+    /** Son tick anlığındaki push modu (aralık seçimi). */
+    private HaSettings.PushMode lastTickPushMode = HaSettings.PushMode.NORMAL;
     /** Son push'taki poll komut alanları (arabada değişince tam push tetiklenir). */
     private Integer lastPublishedChargeLimit;
     private Boolean lastPublishedHvac;
     private Integer lastPublishedHvacTemp;
     private Integer lastPublishedHvacFan;
     private Integer lastPublishedMediaVolume;
+    private Boolean lastPublishedVehicleReady;
 
     private final Runnable tickRunnable = this::tick;
     private final Runnable pollRunnable = this::pollTick;
@@ -72,7 +75,11 @@ public class HaBridgeService extends Service {
 
     private void pollTick() {
         try {
-            HaCommandPoller.poll(this);
+            if (HaCommandPoller.poll(this)) {
+                MghaLog.i(TAG, "HA güncelle → tam push");
+                worker.removeCallbacks(tickRunnable);
+                worker.post(tickRunnable);
+            }
         } catch (Throwable t) {
             MghaLog.w(TAG, "poll: " + t.getMessage());
         } finally {
@@ -83,20 +90,13 @@ public class HaBridgeService extends Service {
     private void schedulePoll() {
         if (shuttingDown || worker == null) return;
         worker.removeCallbacks(pollRunnable);
-        if (!HaSettings.pollEnabled(this)) {
-            HaCommandPoller.resetCache();
-            return;
-        }
+        // Refresh + aralık her zaman; komut poll ayrı bayrak
         worker.postDelayed(pollRunnable, HaSettings.pollIntervalMs(this));
     }
 
     private void startPollLoop() {
         if (shuttingDown || worker == null) return;
         worker.removeCallbacks(pollRunnable);
-        if (!HaSettings.pollEnabled(this)) {
-            HaCommandPoller.resetCache();
-            return;
-        }
         worker.post(pollRunnable);
     }
 
@@ -115,6 +115,13 @@ public class HaBridgeService extends Service {
             if (!HaSettings.isConfigured(this)) return;
             if (!WifiHelper.canSend(this, HaSettings.wifiOnly(this))) return;
             VehicleSnapshot snap = VehicleReader.read();
+            lastTickPushMode = HaSettings.pushMode(snap.charging);
+            if (noteReadyRisingEdge(snap)) {
+                MghaLog.i(TAG, "araç READY oldu → tam push");
+                worker.removeCallbacks(tickRunnable);
+                worker.post(tickRunnable);
+                return;
+            }
             if (pollCommandChangedOnCar(snap)) {
                 MghaLog.i(TAG, "poll komutu arabada değişti → tam push");
                 worker.removeCallbacks(tickRunnable);
@@ -162,6 +169,25 @@ public class HaBridgeService extends Service {
         return changed;
     }
 
+    /** READY false→true: son çalışma zamanını kaydet; true dönerse hemen push. */
+    private boolean noteReadyRisingEdge(VehicleSnapshot snap) {
+        if (snap == null) return false;
+        if (snap.vehicleReady) {
+            if (HaSettings.vehicleLastRunMs(this) <= 0) {
+                long now = System.currentTimeMillis();
+                HaSettings.setVehicleLastRunMs(this, now);
+                snap.vehicleLastRunMs = now;
+            }
+            if (lastPublishedVehicleReady != null && !lastPublishedVehicleReady) {
+                long now = System.currentTimeMillis();
+                HaSettings.setVehicleLastRunMs(this, now);
+                snap.vehicleLastRunMs = now;
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void rememberPublishedPollCommands(VehicleSnapshot snap) {
         if (snap == null) return;
         if (snap.chargeLimitPercent >= 40 && snap.chargeLimitPercent <= 100) {
@@ -181,6 +207,7 @@ public class HaBridgeService extends Service {
         if (snap.mediaVolumeLevel >= 0 && snap.mediaVolumeLevel <= 32) {
             lastPublishedMediaVolume = snap.mediaVolumeLevel;
         }
+        lastPublishedVehicleReady = snap.vehicleReady;
     }
 
     @Override
@@ -275,6 +302,11 @@ public class HaBridgeService extends Service {
 
             VehicleSnapshot snap = VehicleReader.read();
             BridgeStatus.carOk = snap.carConnected;
+            lastTickPushMode = HaSettings.pushMode(snap.charging);
+            if (snap.vehicleReady && HaSettings.vehicleLastRunMs(this) <= 0) {
+                HaSettings.setVehicleLastRunMs(this, snap.capturedAtMs);
+                snap.vehicleLastRunMs = snap.capturedAtMs;
+            }
             boolean wifi = WifiHelper.hasWifiInternet(this);
             boolean anyNet = WifiHelper.hasAnyInternet(this);
             boolean validated = WifiHelper.isValidated(this);
@@ -380,11 +412,17 @@ public class HaBridgeService extends Service {
         } finally {
             broadcastStatus();
             if (!shuttingDown && worker != null) {
-                long delay = nextDelayMs > 0 ? nextDelayMs : HaSettings.intervalMs(this);
+                long delay = nextDelayMs > 0
+                        ? nextDelayMs
+                        : HaSettings.intervalMsForMode(this, lastTickPushMode);
                 worker.removeCallbacks(tickRunnable);
                 worker.postDelayed(tickRunnable, delay);
             }
         }
+    }
+
+    private long currentPushIntervalMs() {
+        return HaSettings.intervalMsForMode(this, lastTickPushMode);
     }
 
     /** SOC / menzil / km’den biri doluysa göndermeye değer (GPS şart değil). */
@@ -452,7 +490,7 @@ public class HaBridgeService extends Service {
 
     private void scheduleTickSoon(String reason) {
         if (worker == null) return;
-        long interval = HaSettings.intervalMs(this);
+        long interval = currentPushIntervalMs();
         long last = BridgeStatus.lastSendAtMs;
         if (BridgeStatus.lastSendOk && last > 0) {
             long since = System.currentTimeMillis() - last;

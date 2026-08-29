@@ -23,9 +23,11 @@
     <string name="label_prefix">Entity prefix</string>
     <string name="hint_prefix">mg4</string>
     <string name="default_prefix">mg4</string>
-    <string name="label_interval">Interval (minutes)</string>
-    <string name="hint_interval">1</string>
-    <string name="default_interval">1</string>
+    <string name="label_interval_normal">Normal interval (min)</string>
+    <string name="label_interval_charging">Charging interval (sec)</string>
+    <string name="hint_interval">10</string>
+    <string name="default_interval">10</string>
+    <string name="default_interval_charging">60</string>
     <string name="check_wifi_only">Send only when on Wi‑Fi</string>
     <string name="check_insecure_ssl">Accept self-signed SSL</string>
     <string name="check_autostart">Start service on boot</string>
@@ -132,6 +134,8 @@
 
     <!-- Preview / vehicle -->
     <string name="preview_demo_header">DEMO MODE — simulated data\n\n</string>
+    <string name="preview_vehicle_ready">Vehicle running: %1$s\n</string>
+    <string name="preview_vehicle_last_run">Last run: %1$s\n</string>
     <string name="preview_soc">Battery charge: %1$s\n</string>
     <string name="preview_charge_limit">Charge limit: %1$s\n</string>
     <string name="preview_range">Range: %1$s\n</string>
@@ -201,7 +205,9 @@
     <string name="ha_name_battery_charging_power">Battery power</string>
     <string name="ha_name_station_dc_current">Station current</string>
     <string name="ha_name_station_dc_power">Station power</string>
-    <string name="ha_name_charging">Charging</string>
+    <string name="ha_name_charging">Charge</string>
+    <string name="ha_name_vehicle_ready">Vehicle running</string>
+    <string name="ha_name_vehicle_last_run">Vehicle last run</string>
     <string name="ha_name_last_update">Last update</string>
     <string name="ha_name_location">Location</string>
 

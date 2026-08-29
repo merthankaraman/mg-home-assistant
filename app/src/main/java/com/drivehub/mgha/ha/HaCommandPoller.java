@@ -8,23 +8,25 @@ import com.drivehub.mgha.prefs.HaSettings;
 import com.drivehub.mgha.util.MghaLog;
 
 /**
- * HA'daki komut varlıklarını okur ve araca uygular (poll modu açıkken).
+ * HA'daki komut varlıklarını okur ve araca uygular.
+ * Refresh / aralık ayarları poll kapalı olsa da okunur.
  */
 public final class HaCommandPoller {
     private static final String TAG = "MGHA_POLL";
 
     private static Boolean sLastHvacOn;
+    private static Boolean sLastCharging;
     private static Integer sLastChargeLimitPct;
     private static Integer sLastHvacTempC;
     private static Integer sLastHvacFanLevel;
     private static Integer sLastMediaVolume;
+    private static Integer sLastIntervalNormal;
+    private static Integer sLastIntervalCharging;
 
-    private HaCommandPoller() {}
-
-    public static void poll(Context ctx) {
-        if (!HaSettings.pollEnabled(ctx)) return;
-        if (!HaSettings.isConfigured(ctx)) return;
-        if (!WifiHelper.canSend(ctx, HaSettings.wifiOnly(ctx))) return;
+    /** @return true ise hemen full push yapılmalı */
+    public static boolean poll(Context ctx) {
+        if (!HaSettings.isConfigured(ctx)) return false;
+        if (!WifiHelper.canSend(ctx, HaSettings.wifiOnly(ctx))) return false;
 
         String prefix = HaSettings.prefix(ctx);
         HomeAssistantClient client = new HomeAssistantClient(
@@ -33,11 +35,76 @@ public final class HaCommandPoller {
                 HaSettings.token(ctx),
                 HaSettings.allowInsecureSsl(ctx));
 
+        boolean forcePush = pollRefresh(ctx, client, prefix);
+        pollIntervals(ctx, client, prefix);
+
+        if (!HaSettings.pollEnabled(ctx)) {
+            return forcePush;
+        }
+
         pollHvac(ctx, client, prefix);
         pollHvacTemp(ctx, client, prefix);
         pollHvacFan(ctx, client, prefix);
         pollMediaVolume(ctx, client, prefix);
         pollChargeLimit(ctx, client, prefix);
+        pollCharging(ctx, client, prefix);
+        return forcePush;
+    }
+
+    private static boolean pollRefresh(Context ctx, HomeAssistantClient client, String prefix) {
+        String entity = "button." + prefix + "_refresh";
+        Long pressedAt = client.getButtonPressedAtMs(entity);
+        if (pressedAt == null || pressedAt <= 0) {
+            return false;
+        }
+        long handled = HaSettings.refreshHandledMs(ctx);
+        if (pressedAt <= handled) {
+            return false;
+        }
+        HaSettings.setRefreshHandledMs(ctx, pressedAt);
+        MghaLog.i(TAG, "HA güncelle isteği ← " + entity);
+        return true;
+    }
+
+    private static void pollIntervals(Context ctx, HomeAssistantClient client, String prefix) {
+        pollIntervalNormal(ctx, client, "number." + prefix + "_interval_normal");
+        pollIntervalCharging(ctx, client, "number." + prefix + "_interval_charging");
+    }
+
+    private static void pollIntervalNormal(Context ctx, HomeAssistantClient client, String entity) {
+        Integer min = client.getNumberState(entity);
+        if (min == null) return;
+        if (min < HaSettings.MIN_PUSH_INTERVAL_MIN) {
+            MghaLog.w(TAG, "geçersiz aralık: " + min + " ← " + entity);
+            return;
+        }
+        if (sLastIntervalNormal != null && sLastIntervalNormal.equals(min)) return;
+        int current = HaSettings.intervalNormalMin(ctx);
+        if (min == current) {
+            sLastIntervalNormal = min;
+            return;
+        }
+        HaSettings.setIntervalNormalMin(ctx, min);
+        sLastIntervalNormal = min;
+        MghaLog.i(TAG, "normal push aralığı " + min + "dk ← " + entity);
+    }
+
+    private static void pollIntervalCharging(Context ctx, HomeAssistantClient client, String entity) {
+        Integer sec = client.getNumberState(entity);
+        if (sec == null) return;
+        if (sec < HaSettings.MIN_PUSH_INTERVAL_CHARGING_SEC) {
+            MghaLog.w(TAG, "geçersiz şarj aralığı: " + sec + " ← " + entity);
+            return;
+        }
+        if (sLastIntervalCharging != null && sLastIntervalCharging.equals(sec)) return;
+        int current = HaSettings.intervalChargingSec(ctx);
+        if (sec == current) {
+            sLastIntervalCharging = sec;
+            return;
+        }
+        HaSettings.setIntervalChargingSec(ctx, sec);
+        sLastIntervalCharging = sec;
+        MghaLog.i(TAG, "şarj push aralığı " + sec + "sn ← " + entity);
     }
 
     private static void pollHvac(Context ctx, HomeAssistantClient client, String prefix) {
@@ -56,6 +123,24 @@ public final class HaCommandPoller {
         }
         sLastHvacOn = hvacOn;
         MghaLog.i(TAG, "klima " + (hvacOn ? "açıldı" : "kapatıldı") + " ← " + entity);
+    }
+
+    private static void pollCharging(Context ctx, HomeAssistantClient client, String prefix) {
+        String entity = "switch." + prefix + "_charging";
+        Boolean want = client.getSwitchState(entity);
+        if (want == null) {
+            MghaLog.w(TAG, "poll okunamadı: " + entity);
+            return;
+        }
+        if (sLastCharging != null && sLastCharging.equals(want)) {
+            return;
+        }
+        if (!VehicleReader.setChargingControl(want)) {
+            MghaLog.w(TAG, "şarj kontrol yazılamadı → " + (want ? "başlat" : "durdur"));
+            return;
+        }
+        sLastCharging = want;
+        MghaLog.i(TAG, "şarj " + (want ? "başlatıldı" : "durduruldu") + " ← " + entity);
     }
 
     private static void pollHvacTemp(Context ctx, HomeAssistantClient client, String prefix) {
@@ -150,12 +235,14 @@ public final class HaCommandPoller {
         MghaLog.i(TAG, "şarj sınırı %" + pct + " ← " + entity);
     }
 
-    /** Push sonrası araba değeri; poll aynı değeri tekrar yazmasın. */
     public static void noteHvacFromCar(boolean on) {
         sLastHvacOn = on;
     }
 
-    /** Push sonrası araba değeri; poll aynı değeri tekrar yazmasın. */
+    public static void noteChargingFromCar(boolean charging) {
+        sLastCharging = charging;
+    }
+
     public static void noteChargeLimitFromCar(int pct) {
         if (pct >= 40 && pct <= 100 && pct % 10 == 0) {
             sLastChargeLimitPct = pct;
@@ -182,11 +269,19 @@ public final class HaCommandPoller {
         }
     }
 
+    public static void noteIntervalsFromCar(int normalMin, int chargingSec) {
+        sLastIntervalNormal = normalMin;
+        sLastIntervalCharging = chargingSec;
+    }
+
     public static void resetCache() {
         sLastHvacOn = null;
+        sLastCharging = null;
         sLastChargeLimitPct = null;
         sLastHvacTempC = null;
         sLastHvacFanLevel = null;
         sLastMediaVolume = null;
+        sLastIntervalNormal = null;
+        sLastIntervalCharging = null;
     }
 }

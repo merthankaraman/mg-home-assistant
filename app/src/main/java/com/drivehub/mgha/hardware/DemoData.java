@@ -25,6 +25,10 @@ public final class DemoData {
         s.hvacTempC = 20 + (wave % 6);
         s.hvacFanLevel = (wave % 9) == 0 ? VehicleReader.HVAC_FAN_AUTO : 3 + (wave % 8);
         s.mediaVolumeLevel = 8 + wave * 3;
+        s.vehicleReady = (wave % 4) == 0;
+        if (s.vehicleReady) {
+            s.vehicleLastRunMs = System.currentTimeMillis() - wave * 60_000L;
+        }
         s.tireKpaFl = 238 + wave;
         s.tireKpaFr = 241;
         s.tireKpaRl = 235 + wave / 2;

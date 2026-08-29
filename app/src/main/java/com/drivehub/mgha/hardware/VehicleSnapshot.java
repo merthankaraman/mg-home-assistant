@@ -53,6 +53,10 @@ public class VehicleSnapshot {
     public int hvacFanLevel = -1;
     /** Multimedya ses seviyesi (0–32); okunamazsa -1. */
     public int mediaVolumeLevel = -1;
+    /** EV READY (çalışıyor). */
+    public boolean vehicleReady;
+    /** Son READY geçişi (epoch ms); yoksa 0. */
+    public long vehicleLastRunMs;
 
     public String formatForScreen(Context ctx) {
         StringBuilder sb = new StringBuilder();
@@ -60,6 +64,9 @@ public class VehicleSnapshot {
             sb.append(ctx.getString(R.string.preview_demo_header));
         }
         sb.append(ctx.getString(R.string.preview_last_update, fmtTime(ctx, capturedAtMs)));
+        sb.append(ctx.getString(R.string.preview_vehicle_ready,
+                ctx.getString(vehicleReady ? R.string.preview_hvac_on : R.string.preview_hvac_off)));
+        sb.append(ctx.getString(R.string.preview_vehicle_last_run, fmtDateTime(ctx, vehicleLastRunMs)));
         sb.append(ctx.getString(R.string.preview_soc, fmt(ctx, socPercent, R.string.fmt_percent)));
         sb.append(ctx.getString(R.string.preview_charge_limit,
                 fmtInt(ctx, chargeLimitPercent, R.string.fmt_percent)));
@@ -159,6 +166,12 @@ public class VehicleSnapshot {
     private static String fmtTime(Context ctx, long ms) {
         if (ms <= 0) return ctx.getString(R.string.preview_unknown);
         return new java.text.SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+                .format(new java.util.Date(ms));
+    }
+
+    private static String fmtDateTime(Context ctx, long ms) {
+        if (ms <= 0) return ctx.getString(R.string.preview_unknown);
+        return new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
                 .format(new java.util.Date(ms));
     }
 }

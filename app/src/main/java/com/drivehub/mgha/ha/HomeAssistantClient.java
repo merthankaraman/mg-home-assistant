@@ -117,16 +117,51 @@ public class HomeAssistantClient {
         }
     }
 
+    /**
+     * Button entity state = son basış ISO zamanı (HA 2022.4+).
+     * @return epoch ms veya null
+     */
+    public Long getButtonPressedAtMs(String entityId) {
+        String raw = getEntityStateRaw(entityId);
+        if (raw == null || raw.isEmpty()) return null;
+        String lower = raw.toLowerCase();
+        if ("unknown".equals(lower) || "unavailable".equals(lower)) return null;
+        try {
+            return java.time.OffsetDateTime.parse(raw).toInstant().toEpochMilli();
+        } catch (Exception ignored) {}
+        try {
+            return java.time.Instant.parse(raw).toEpochMilli();
+        } catch (Exception ignored) {}
+        try {
+            return java.time.ZonedDateTime.parse(raw).toInstant().toEpochMilli();
+        } catch (Exception ignored) {}
+        try {
+            return java.time.LocalDateTime.parse(raw)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli();
+        } catch (Exception ignored) {}
+        return null;
+    }
+
     private String getEntityState(String entityId) {
+        String raw = getEntityStateRaw(entityId);
+        if (raw == null) return null;
+        String state = raw.trim().toLowerCase();
+        if ("unknown".equals(state) || "unavailable".equals(state)) {
+            return null;
+        }
+        return state;
+    }
+
+    private String getEntityStateRaw(String entityId) {
         if (entityId == null || entityId.trim().isEmpty()) return null;
         Result r = request("GET", "/api/states/" + entityId.trim(), null);
         if (!r.ok || r.body == null || r.body.isEmpty()) return null;
         try {
             JSONObject o = new JSONObject(r.body);
-            String state = o.optString("state", "").trim().toLowerCase();
-            if ("unknown".equals(state) || "unavailable".equals(state)) {
-                return null;
-            }
+            String state = o.optString("state", "").trim();
+            if (state.isEmpty()) return null;
             return state;
         } catch (Exception e) {
             return null;

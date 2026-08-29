@@ -23,9 +23,11 @@
     <string name="label_prefix">Varlık öneki</string>
     <string name="hint_prefix">mg4</string>
     <string name="default_prefix">mg4</string>
-    <string name="label_interval">Aralık (dakika)</string>
-    <string name="hint_interval">1</string>
-    <string name="default_interval">1</string>
+    <string name="label_interval_normal">Normal aralık (dk)</string>
+    <string name="label_interval_charging">Şarj aralığı (sn)</string>
+    <string name="hint_interval">10</string>
+    <string name="default_interval">10</string>
+    <string name="default_interval_charging">60</string>
     <string name="check_wifi_only">Sadece WiFi varken gönder</string>
     <string name="check_insecure_ssl">Kendinden imzalı SSL kabul et</string>
     <string name="check_autostart">Açılışta servisi başlat</string>
@@ -132,6 +134,8 @@
 
     <!-- Preview / vehicle -->
     <string name="preview_demo_header">DEMO MODU — sanal veri\n\n</string>
+    <string name="preview_vehicle_ready">Araç çalışıyor: %1$s\n</string>
+    <string name="preview_vehicle_last_run">Son çalışma: %1$s\n</string>
     <string name="preview_soc">Araç şarjı: %1$s\n</string>
     <string name="preview_charge_limit">Şarj sınırı: %1$s\n</string>
     <string name="preview_range">Menzil: %1$s\n</string>
@@ -201,7 +205,9 @@
     <string name="ha_name_battery_charging_power">Batarya gücü</string>
     <string name="ha_name_station_dc_current">İstasyon akımı</string>
     <string name="ha_name_station_dc_power">İstasyon gücü</string>
-    <string name="ha_name_charging">Şarjda</string>
+    <string name="ha_name_charging">Şarj</string>
+    <string name="ha_name_vehicle_ready">Araç çalışıyor</string>
+    <string name="ha_name_vehicle_last_run">Araç son çalışma vakti</string>
     <string name="ha_name_last_update">Son güncelleme</string>
     <string name="ha_name_location">Konum</string>
 

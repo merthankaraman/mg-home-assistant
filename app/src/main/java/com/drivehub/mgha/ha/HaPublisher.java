@@ -5,6 +5,7 @@ import android.content.Context;
 import com.drivehub.mgha.R;
 import com.drivehub.mgha.hardware.VehicleReader;
 import com.drivehub.mgha.hardware.VehicleSnapshot;
+import com.drivehub.mgha.prefs.HaSettings;
 import com.drivehub.mgha.util.MghaLog;
 
 import org.json.JSONArray;
@@ -37,13 +38,14 @@ public final class HaPublisher {
         }
         String p = sanitize(prefix);
 
-        HomeAssistantClient.Result push = client.callService("mg4_bridge", "push", buildPush(snap, p, true));
+        HomeAssistantClient.Result push = client.callService("mg4_bridge", "push", buildPush(ctx, snap, p, true));
         if (push.ok) {
             out.ok = 1;
             out.viaBridge = true;
             if (snap.chargeLimitPercent >= 40 && snap.chargeLimitPercent <= 100) {
                 HaCommandPoller.noteChargeLimitFromCar(snap.chargeLimitPercent);
             }
+            HaCommandPoller.noteChargingFromCar(snap.charging);
             if (snap.hvacOn != null) {
                 HaCommandPoller.noteHvacFromCar(snap.hvacOn);
             }
@@ -58,6 +60,9 @@ public final class HaPublisher {
             if (snap.mediaVolumeLevel >= 0 && snap.mediaVolumeLevel <= 32) {
                 HaCommandPoller.noteMediaVolumeFromCar(snap.mediaVolumeLevel);
             }
+            HaCommandPoller.noteIntervalsFromCar(
+                    HaSettings.intervalNormalMin(ctx),
+                    HaSettings.intervalChargingSec(ctx));
             return out;
         }
         // Yalnızca servis yoksa REST; ağ/SSL hatasında fallback yağmuru yapma
@@ -100,8 +105,10 @@ public final class HaPublisher {
         } catch (Exception ignored) {}
 
         JSONObject attr = new JSONObject();
-        client.postState("binary_sensor." + p + "_charging", "off",
+        client.postState("switch." + p + "_charging", "off",
                 binAttrs(ctx.getString(R.string.ha_name_charging)));
+        client.postState("binary_sensor." + p + "_vehicle_ready", "off",
+                binAttrs(ctx.getString(R.string.ha_name_vehicle_ready)));
         String[] sensors = {
                 "sensor." + p + "_battery",
                 "sensor." + p + "_range",
@@ -121,6 +128,7 @@ public final class HaPublisher {
                 "sensor." + p + "_station_dc_current",
                 "sensor." + p + "_station_dc_power",
                 "sensor." + p + "_charge_remaining",
+                "sensor." + p + "_vehicle_last_run",
                 "sensor." + p + "_last_update"
         };
         for (String id : sensors) {
@@ -128,7 +136,7 @@ public final class HaPublisher {
         }
     }
 
-    private static JSONObject buildPush(VehicleSnapshot snap, String prefix, boolean online) {
+    private static JSONObject buildPush(Context ctx, VehicleSnapshot snap, String prefix, boolean online) {
         JSONObject o = new JSONObject();
         try {
             o.put("prefix", prefix);
@@ -152,6 +160,14 @@ public final class HaPublisher {
             putInt(o, "tire_pressure_rr", snap.tireKpaRr);
             o.put("charging", snap.charging);
             o.put("charging_status", chargeState(snap.chargeStatus));
+            o.put("vehicle_ready", snap.vehicleReady);
+            if (snap.vehicleLastRunMs > 0) {
+                o.put("vehicle_last_run", isoUtc(snap.vehicleLastRunMs));
+            }
+            if (ctx != null) {
+                o.put("interval_normal", HaSettings.intervalNormalMin(ctx));
+                o.put("interval_charging", HaSettings.intervalChargingSec(ctx));
+            }
             putNum(o, "battery_voltage", snap.batteryVoltageV);
             putNum(o, "battery_current", snap.batteryCurrentA);
             putNum(o, "battery_charging_power", snap.dcChargingPowerKw);
@@ -233,9 +249,17 @@ public final class HaPublisher {
                 attrs(ctx.getString(R.string.ha_name_tire_rl), "kPa", "pressure", "measurement", "mdi:car-tire-alert"));
         postInt(client, out, members, "sensor." + p + "_tire_pressure_rr", snap.tireKpaRr,
                 attrs(ctx.getString(R.string.ha_name_tire_rr), "kPa", "pressure", "measurement", "mdi:car-tire-alert"));
-        postStr(client, out, members, "binary_sensor." + p + "_charging",
+        postStr(client, out, members, "switch." + p + "_charging",
                 snap.charging ? "on" : "off",
                 binAttrs(ctx.getString(R.string.ha_name_charging)));
+        postStr(client, out, members, "binary_sensor." + p + "_vehicle_ready",
+                snap.vehicleReady ? "on" : "off",
+                binAttrs(ctx.getString(R.string.ha_name_vehicle_ready)));
+        if (snap.vehicleLastRunMs > 0) {
+            postStr(client, out, members, "sensor." + p + "_vehicle_last_run",
+                    isoUtc(snap.vehicleLastRunMs),
+                    attrs(ctx.getString(R.string.ha_name_vehicle_last_run), null, "timestamp", null, "mdi:clock-outline"));
+        }
         postStr(client, out, members, "sensor." + p + "_charging_status", chargeState(snap.chargeStatus),
                 attrs(ctx.getString(R.string.ha_name_charging_status), null, null, null, "mdi:ev-station"));
         postChargeInt(client, out, members, "sensor." + p + "_charge_remaining", snap.chargeRemainingMin,
@@ -281,6 +305,12 @@ public final class HaPublisher {
         }
         if (out.ok > 0 && snap.mediaVolumeLevel >= 0 && snap.mediaVolumeLevel <= 32) {
             HaCommandPoller.noteMediaVolumeFromCar(snap.mediaVolumeLevel);
+        }
+        if (out.ok > 0) {
+            HaCommandPoller.noteChargingFromCar(snap.charging);
+            HaCommandPoller.noteIntervalsFromCar(
+                    HaSettings.intervalNormalMin(ctx),
+                    HaSettings.intervalChargingSec(ctx));
         }
         return out;
     }

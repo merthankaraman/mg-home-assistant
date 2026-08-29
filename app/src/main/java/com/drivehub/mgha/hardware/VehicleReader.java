@@ -51,6 +51,10 @@ public final class VehicleReader {
      * Ham değer 1..7 basamak; yüzde = 40 + (n - 1) * 10 → 1=%40 … 7=%100.
      */
     private static final int PROP_CHARGE_LIMIT_SOC = 0x2140F40C;
+    /** Şarj başlat/durdur — getChargingControlSwitch / setChargingControlSwitch. */
+    private static final int PROP_CHARGE_CONTROL = 0x2140F412;
+    /** EV sistemi READY — getEngineState; 1 = çalışıyor. */
+    private static final int PROP_ENGINE_STATE = 0x2140157C;
     /** Tahmini kalan şarj süresi (dakika) — getPredictChargingTime. */
     private static final int PROP_CHARGE_REMAIN_MIN = 0x2140F417;
     private static final int PROP_TOTAL_MILEAGE = 0x21401566;
@@ -180,6 +184,24 @@ public final class VehicleReader {
             ensureReady(sAppContext);
         }
         return setFloatArea(PROP_DRV_TEMP, AREA_HVAC_LEFT, (float) tempC);
+    }
+
+    /** Şarj başlat/durdur — CPM {@code PROP_CHARGE_CONTROL} (1=başlat, 0=durdur). */
+    public static boolean setChargingControl(boolean start) {
+        if (sAppContext != null && HaSettings.demoMode(sAppContext)) {
+            MghaLog.i(TAG, "demo: setChargingControl(" + start + ")");
+            return true;
+        }
+        if (sAppContext != null && !WifiHelper.isSim()) {
+            ensureReady(sAppContext);
+        }
+        return setIntArea(PROP_CHARGE_CONTROL, AREA_GLOBAL, start ? 1 : 0);
+    }
+
+    /** Araç READY (EV güç aktarma aktif). */
+    private static boolean readVehicleReady() {
+        int v = getInt(PROP_ENGINE_STATE);
+        return v == 1;
     }
 
     /** Klima fan hızı — manuel 1–11; {@link #HVAC_FAN_AUTO} → {@code PROP_HVAC_AUTO}. */
@@ -511,6 +533,10 @@ public final class VehicleReader {
         s.hvacTempC = readDriverTempC();
         s.hvacFanLevel = readHvacFanSpeed();
         s.mediaVolumeLevel = readMediaVolumeLevel();
+        s.vehicleReady = readVehicleReady();
+        if (sAppContext != null) {
+            s.vehicleLastRunMs = HaSettings.vehicleLastRunMs(sAppContext);
+        }
 
         s.tireKpaFl = getInt(PROP_TIRE_PRESSURE_FL);
         s.tireKpaFr = getInt(PROP_TIRE_PRESSURE_FR);
@@ -560,6 +586,7 @@ public final class VehicleReader {
                 + " hvacT=" + s.hvacTempC
                 + " hvacFan=" + s.hvacFanLevel
                 + " media=" + s.mediaVolumeLevel
+                + " ready=" + s.vehicleReady
                 + " gps=" + (Double.isNaN(s.latitude) ? "none" : (s.latitude + "," + s.longitude))
                 + " bmsCache=" + sBmsCache.size());
         return s;
