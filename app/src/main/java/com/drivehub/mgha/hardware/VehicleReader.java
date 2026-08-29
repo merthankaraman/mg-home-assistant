@@ -626,11 +626,13 @@ public final class VehicleReader {
     }
 
     private static boolean isCharging(int status, float acAmp, float dcAmp, float battVolt, float speedKmh) {
-        if (status == 1 || status == 10) return true;
-        if (!Float.isNaN(acAmp) && acAmp > 0.5f) return true;
+        return status == 1 || status == 10;
+        /*if (!Float.isNaN(acAmp) && acAmp > 0.5f) return true;
         return !Float.isNaN(dcAmp) && !Float.isNaN(battVolt)
                 && battVolt > 200f && dcAmp <= -1f
                 && (Float.isNaN(speedKmh) || speedKmh < 1f);
+
+         */
     }
 
     // MG4 car APIs are only reachable via reflection on the system image.
