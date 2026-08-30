@@ -173,6 +173,52 @@ public final class VehicleReader {
         return setIntArea(PROP_HVAC_POWER, AREA_HVAC, 1);
     }
 
+    /** Klima açık mı? okunamazsa null. */
+    public static Boolean readHvacPowerOn() {
+        if (sAppContext != null && !WifiHelper.isSim()) {
+            ensureReady(sAppContext);
+        }
+        return hvacOnFromCpm(getIntArea(PROP_HVAC_POWER, AREA_HVAC));
+    }
+
+    /** Hedef klima °C; okunamazsa -1. */
+    public static int readHvacTemperatureC() {
+        if (sAppContext != null && !WifiHelper.isSim()) {
+            ensureReady(sAppContext);
+        }
+        return readDriverTempC();
+    }
+
+    /** Fan 1–11 / 12=auto; okunamazsa -1. */
+    public static int readHvacFanLevel() {
+        if (sAppContext != null && !WifiHelper.isSim()) {
+            ensureReady(sAppContext);
+        }
+        return readHvacFanSpeed();
+    }
+
+    /** Şarjda mı (status + akım heuristiği). */
+    public static boolean readIsCharging() {
+        if (sAppContext != null && !WifiHelper.isSim()) {
+            ensureReady(sAppContext);
+        }
+        int st = firstInt(getInt(PROP_CHG_STATUS), bmsInt(PROP_CHG_STATUS));
+        float acA = firstFloat(bmsFloat(PROP_AC_AMP), getFloat(PROP_AC_AMP));
+        float dcA = firstFloat(bmsFloat(PROP_CHR_AMP_ACT), getFloat(PROP_CHR_AMP_ACT));
+        float volt = firstFloat(bmsFloat(PROP_BATT_VOLT), getFloat(PROP_BATT_VOLT));
+        float speed = getFloat(PROP_SPEED);
+        return isCharging(st, acA, dcA, volt, speed);
+    }
+
+    /** Şarj limiti %; okunamazsa -1. */
+    public static int readChargeLimitPercent() {
+        if (sAppContext != null && !WifiHelper.isSim()) {
+            ensureReady(sAppContext);
+        }
+        int limitStep = firstInt(getInt(PROP_CHARGE_LIMIT_SOC), bmsInt(PROP_CHARGE_LIMIT_SOC));
+        return chargeLimitStepToPercent(limitStep);
+    }
+
     /** Hedef klima °C — CPM {@code PROP_DRV_TEMP} area {@code AREA_HVAC_LEFT}. */
     public static boolean setHvacTemperature(int tempC) {
         if (tempC < 16 || tempC > 30) return false;

@@ -9,10 +9,11 @@ import com.drivehub.mgha.util.MghaLog;
 
 /**
  * HA'daki komut varlıklarını okur ve araca uygular.
- * Refresh / aralık ayarları poll kapalı olsa da okunur.
+ * Feedback: İngilizce anahtar + isteğe bağlı arg (HA yerelleştirir).
  */
 public final class HaCommandPoller {
     private static final String TAG = "MGHA_POLL";
+    private static final long VERIFY_DELAY_MS = 900L;
 
     private static Boolean sLastHvacOn;
     private static Boolean sLastCharging;
@@ -22,6 +23,55 @@ public final class HaCommandPoller {
     private static Integer sLastMediaVolume;
     private static Integer sLastIntervalNormal;
     private static Integer sLastIntervalCharging;
+
+    public static final class CommandFeedback {
+        public final String status; // idle | ok | fail
+        public final String command;
+        /** Stable English key for HA i18n, e.g. on, write_failed, verify_mismatch. */
+        public final String detailKey;
+        /** Optional argument (value, "actual/expected", …). */
+        public final String detailArg;
+        public final long atMs;
+        public final long seq;
+
+        CommandFeedback(String status, String command, String detailKey, String detailArg,
+                        long atMs, long seq) {
+            this.status = status;
+            this.command = command;
+            this.detailKey = detailKey;
+            this.detailArg = detailArg;
+            this.atMs = atMs;
+            this.seq = seq;
+        }
+    }
+
+    private static volatile CommandFeedback sFeedback =
+            new CommandFeedback("idle", "", "", null, 0L, 0L);
+    private static long sFeedbackSeq;
+
+    public static CommandFeedback lastFeedback() {
+        return sFeedback;
+    }
+
+    private static void noteFeedback(String status, String command, String detailKey) {
+        noteFeedback(status, command, detailKey, null);
+    }
+
+    private static void noteFeedback(String status, String command, String detailKey, String detailArg) {
+        sFeedbackSeq++;
+        sFeedback = new CommandFeedback(status, command, detailKey, detailArg,
+                System.currentTimeMillis(), sFeedbackSeq);
+        MghaLog.i(TAG, "feedback " + status + " [" + command + "] " + detailKey
+                + (detailArg != null ? (" arg=" + detailArg) : ""));
+    }
+
+    private static void sleepVerify() {
+        try {
+            Thread.sleep(VERIFY_DELAY_MS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
 
     /** @return true ise hemen full push yapılmalı */
     public static boolean poll(Context ctx) {
@@ -35,20 +85,19 @@ public final class HaCommandPoller {
                 HaSettings.token(ctx),
                 HaSettings.allowInsecureSsl(ctx));
 
+        long seqBefore = sFeedbackSeq;
         boolean forcePush = pollRefresh(ctx, client, prefix);
         pollIntervals(ctx, client, prefix);
 
-        if (!HaSettings.pollEnabled(ctx)) {
-            return forcePush;
+        if (HaSettings.pollEnabled(ctx)) {
+            pollHvac(ctx, client, prefix);
+            pollHvacTemp(ctx, client, prefix);
+            pollHvacFan(ctx, client, prefix);
+            pollMediaVolume(ctx, client, prefix);
+            pollChargeLimit(ctx, client, prefix);
+            pollCharging(ctx, client, prefix);
         }
-
-        pollHvac(ctx, client, prefix);
-        pollHvacTemp(ctx, client, prefix);
-        pollHvacFan(ctx, client, prefix);
-        pollMediaVolume(ctx, client, prefix);
-        pollChargeLimit(ctx, client, prefix);
-        pollCharging(ctx, client, prefix);
-        return forcePush;
+        return forcePush || sFeedbackSeq != seqBefore;
     }
 
     private static boolean pollRefresh(Context ctx, HomeAssistantClient client, String prefix) {
@@ -62,7 +111,7 @@ public final class HaCommandPoller {
             return false;
         }
         HaSettings.setRefreshHandledMs(ctx, pressedAt);
-        MghaLog.i(TAG, "HA güncelle isteği ← " + entity);
+        noteFeedback("ok", "refresh", "requested");
         return true;
     }
 
@@ -75,7 +124,7 @@ public final class HaCommandPoller {
         Integer min = client.getNumberState(entity);
         if (min == null) return;
         if (min < HaSettings.MIN_PUSH_INTERVAL_MIN) {
-            MghaLog.w(TAG, "geçersiz aralık: " + min + " ← " + entity);
+            noteFeedback("fail", "interval_normal", "invalid", String.valueOf(min));
             return;
         }
         if (sLastIntervalNormal != null && sLastIntervalNormal.equals(min)) return;
@@ -86,14 +135,14 @@ public final class HaCommandPoller {
         }
         HaSettings.setIntervalNormalMin(ctx, min);
         sLastIntervalNormal = min;
-        MghaLog.i(TAG, "normal push aralığı " + min + "dk ← " + entity);
+        noteFeedback("ok", "interval_normal", "set_min", String.valueOf(min));
     }
 
     private static void pollIntervalCharging(Context ctx, HomeAssistantClient client, String entity) {
         Integer sec = client.getNumberState(entity);
         if (sec == null) return;
         if (sec < HaSettings.MIN_PUSH_INTERVAL_CHARGING_SEC) {
-            MghaLog.w(TAG, "geçersiz şarj aralığı: " + sec + " ← " + entity);
+            noteFeedback("fail", "interval_charging", "invalid", String.valueOf(sec));
             return;
         }
         if (sLastIntervalCharging != null && sLastIntervalCharging.equals(sec)) return;
@@ -104,135 +153,172 @@ public final class HaCommandPoller {
         }
         HaSettings.setIntervalChargingSec(ctx, sec);
         sLastIntervalCharging = sec;
-        MghaLog.i(TAG, "şarj push aralığı " + sec + "sn ← " + entity);
+        noteFeedback("ok", "interval_charging", "set_sec", String.valueOf(sec));
     }
 
     private static void pollHvac(Context ctx, HomeAssistantClient client, String prefix) {
         String entity = "switch." + prefix + "_hvac";
         Boolean hvacOn = client.getSwitchState(entity);
-        if (hvacOn == null) {
-            MghaLog.w(TAG, "poll okunamadı: " + entity);
-            return;
-        }
-        if (sLastHvacOn != null && sLastHvacOn.equals(hvacOn)) {
-            return;
-        }
+        if (hvacOn == null) return;
+        if (sLastHvacOn != null && sLastHvacOn.equals(hvacOn)) return;
+        String wantKey = hvacOn ? "on" : "off";
         if (!VehicleReader.setHvacPower(hvacOn)) {
-            MghaLog.w(TAG, "klima yazılamadı → " + (hvacOn ? "aç" : "kapat"));
+            noteFeedback("fail", "hvac", "write_failed", wantKey);
+            return;
+        }
+        sleepVerify();
+        Boolean now = VehicleReader.readHvacPowerOn();
+        if (now == null) {
+            noteFeedback("fail", "hvac", "verify_unread");
+            return;
+        }
+        if (now != hvacOn) {
+            sLastHvacOn = now;
+            noteFeedback("fail", "hvac", "verify_mismatch",
+                    (now ? "on" : "off") + "/" + wantKey);
             return;
         }
         sLastHvacOn = hvacOn;
-        MghaLog.i(TAG, "klima " + (hvacOn ? "açıldı" : "kapatıldı") + " ← " + entity);
+        noteFeedback("ok", "hvac", wantKey);
     }
 
     private static void pollCharging(Context ctx, HomeAssistantClient client, String prefix) {
         String entity = "switch." + prefix + "_charging";
         Boolean want = client.getSwitchState(entity);
-        if (want == null) {
-            MghaLog.w(TAG, "poll okunamadı: " + entity);
-            return;
-        }
-        if (sLastCharging != null && sLastCharging.equals(want)) {
-            return;
-        }
+        if (want == null) return;
+        if (sLastCharging != null && sLastCharging.equals(want)) return;
+        String wantKey = want ? "start" : "stop";
         if (!VehicleReader.setChargingControl(want)) {
-            MghaLog.w(TAG, "şarj kontrol yazılamadı → " + (want ? "başlat" : "durdur"));
+            noteFeedback("fail", "charging", "write_failed", wantKey);
+            return;
+        }
+        sleepVerify();
+        boolean now = VehicleReader.readIsCharging();
+        if (now != want) {
+            sLastCharging = now;
+            noteFeedback("fail", "charging", "verify_mismatch",
+                    (now ? "on" : "off") + "/" + wantKey);
             return;
         }
         sLastCharging = want;
-        MghaLog.i(TAG, "şarj " + (want ? "başlatıldı" : "durduruldu") + " ← " + entity);
+        noteFeedback("ok", "charging", wantKey);
     }
 
     private static void pollHvacTemp(Context ctx, HomeAssistantClient client, String prefix) {
         String entity = "number." + prefix + "_hvac_temperature";
         Integer tempC = client.getNumberState(entity);
-        if (tempC == null) {
-            MghaLog.w(TAG, "poll okunamadı: " + entity);
-            return;
-        }
+        if (tempC == null) return;
         if (tempC < 16 || tempC > 30) {
-            MghaLog.w(TAG, "geçersiz klima °C: " + tempC + " (16–30)");
+            noteFeedback("fail", "hvac_temp", "invalid", tempC + "C");
             return;
         }
-        if (sLastHvacTempC != null && sLastHvacTempC.equals(tempC)) {
-            return;
-        }
+        if (sLastHvacTempC != null && sLastHvacTempC.equals(tempC)) return;
         if (!VehicleReader.setHvacTemperature(tempC)) {
-            MghaLog.w(TAG, "klima °C yazılamadı → " + tempC);
+            noteFeedback("fail", "hvac_temp", "write_failed", tempC + "C");
+            return;
+        }
+        sleepVerify();
+        int now = VehicleReader.readHvacTemperatureC();
+        if (now < 0) {
+            noteFeedback("fail", "hvac_temp", "verify_unread");
+            return;
+        }
+        if (now != tempC) {
+            sLastHvacTempC = now;
+            noteFeedback("fail", "hvac_temp", "verify_mismatch", now + "C/" + tempC + "C");
             return;
         }
         sLastHvacTempC = tempC;
-        MghaLog.i(TAG, "klima " + tempC + "°C ← " + entity);
+        noteFeedback("ok", "hvac_temp", "set", tempC + "C");
     }
 
     private static void pollHvacFan(Context ctx, HomeAssistantClient client, String prefix) {
         String entity = "number." + prefix + "_hvac_fan";
         Integer level = client.getNumberState(entity);
-        if (level == null) {
-            MghaLog.w(TAG, "poll okunamadı: " + entity);
+        if (level == null) return;
+        if (level < VehicleReader.HVAC_FAN_MIN || level > VehicleReader.HVAC_FAN_AUTO
+                || (level > 11 && level < VehicleReader.HVAC_FAN_AUTO)) {
+            noteFeedback("fail", "hvac_fan", "invalid", String.valueOf(level));
             return;
         }
-        if (level < VehicleReader.HVAC_FAN_MIN || level > VehicleReader.HVAC_FAN_AUTO) {
-            MghaLog.w(TAG, "geçersiz klima fan: " + level + " (1–11, 12=oto)");
-            return;
-        }
-        if (level > 11 && level < VehicleReader.HVAC_FAN_AUTO) {
-            MghaLog.w(TAG, "geçersiz klima fan: " + level + " (1–11, 12=oto)");
-            return;
-        }
-        if (sLastHvacFanLevel != null && sLastHvacFanLevel.equals(level)) {
-            return;
-        }
+        if (sLastHvacFanLevel != null && sLastHvacFanLevel.equals(level)) return;
         if (!VehicleReader.setHvacFanSpeed(level)) {
-            MghaLog.w(TAG, "klima fan yazılamadı → " + level);
+            noteFeedback("fail", "hvac_fan", "write_failed", String.valueOf(level));
+            return;
+        }
+        sleepVerify();
+        int now = VehicleReader.readHvacFanLevel();
+        if (now < 0) {
+            noteFeedback("fail", "hvac_fan", "verify_unread");
+            return;
+        }
+        if (now != level) {
+            sLastHvacFanLevel = now;
+            noteFeedback("fail", "hvac_fan", "verify_mismatch", now + "/" + level);
             return;
         }
         sLastHvacFanLevel = level;
-        MghaLog.i(TAG, "klima fan " + level + " ← " + entity);
+        if (level == VehicleReader.HVAC_FAN_AUTO) {
+            noteFeedback("ok", "hvac_fan", "auto");
+        } else {
+            noteFeedback("ok", "hvac_fan", "set", String.valueOf(level));
+        }
     }
 
     private static void pollMediaVolume(Context ctx, HomeAssistantClient client, String prefix) {
         String entity = "number." + prefix + "_media_volume";
         Integer level = client.getNumberState(entity);
-        if (level == null) {
-            MghaLog.w(TAG, "poll okunamadı: " + entity);
-            return;
-        }
+        if (level == null) return;
         if (level < 0 || level > 32) {
-            MghaLog.w(TAG, "geçersiz medya sesi: " + level + " (0–32)");
+            noteFeedback("fail", "media_volume", "invalid", String.valueOf(level));
             return;
         }
-        if (sLastMediaVolume != null && sLastMediaVolume.equals(level)) {
-            return;
-        }
+        if (sLastMediaVolume != null && sLastMediaVolume.equals(level)) return;
         if (!VehicleReader.setMediaVolumeLevel(level)) {
-            MghaLog.w(TAG, "medya sesi yazılamadı → " + level);
+            noteFeedback("fail", "media_volume", "write_failed", String.valueOf(level));
+            return;
+        }
+        sleepVerify();
+        int now = VehicleReader.readMediaVolumeLevel();
+        if (now < 0) {
+            noteFeedback("fail", "media_volume", "verify_unread");
+            return;
+        }
+        if (now != level) {
+            sLastMediaVolume = now;
+            noteFeedback("fail", "media_volume", "verify_mismatch", now + "/" + level);
             return;
         }
         sLastMediaVolume = level;
-        MghaLog.i(TAG, "medya sesi " + level + " ← " + entity);
+        noteFeedback("ok", "media_volume", "set", String.valueOf(level));
     }
 
     private static void pollChargeLimit(Context ctx, HomeAssistantClient client, String prefix) {
         String entity = "number." + prefix + "_charge_limit";
         Integer pct = client.getNumberState(entity);
-        if (pct == null) {
-            MghaLog.w(TAG, "poll okunamadı: " + entity);
-            return;
-        }
+        if (pct == null) return;
         if (VehicleReader.chargeLimitPercentToStep(pct) < 0) {
-            MghaLog.w(TAG, "geçersiz şarj sınırı: " + pct + " (40–100, 10'ar)");
+            noteFeedback("fail", "charge_limit", "invalid", pct + "%");
             return;
         }
-        if (sLastChargeLimitPct != null && sLastChargeLimitPct.equals(pct)) {
-            return;
-        }
+        if (sLastChargeLimitPct != null && sLastChargeLimitPct.equals(pct)) return;
         if (!VehicleReader.setChargeLimitPercent(pct)) {
-            MghaLog.w(TAG, "şarj sınırı yazılamadı → %" + pct);
+            noteFeedback("fail", "charge_limit", "write_failed", pct + "%");
+            return;
+        }
+        sleepVerify();
+        int now = VehicleReader.readChargeLimitPercent();
+        if (now < 0) {
+            noteFeedback("fail", "charge_limit", "verify_unread");
+            return;
+        }
+        if (now != pct) {
+            sLastChargeLimitPct = now;
+            noteFeedback("fail", "charge_limit", "verify_mismatch", now + "%/" + pct + "%");
             return;
         }
         sLastChargeLimitPct = pct;
-        MghaLog.i(TAG, "şarj sınırı %" + pct + " ← " + entity);
+        noteFeedback("ok", "charge_limit", "set", pct + "%");
     }
 
     public static void noteHvacFromCar(boolean on) {

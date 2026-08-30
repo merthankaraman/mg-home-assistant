@@ -129,6 +129,7 @@ public final class HaPublisher {
                 "sensor." + p + "_station_dc_power",
                 "sensor." + p + "_charge_remaining",
                 "sensor." + p + "_vehicle_last_run",
+                "sensor." + p + "_command_feedback",
                 "sensor." + p + "_last_update"
         };
         for (String id : sensors) {
@@ -167,6 +168,20 @@ public final class HaPublisher {
             if (ctx != null) {
                 o.put("interval_normal", HaSettings.intervalNormalMin(ctx));
                 o.put("interval_charging", HaSettings.intervalChargingSec(ctx));
+                HaCommandPoller.CommandFeedback fb = HaCommandPoller.lastFeedback();
+                if (fb != null && fb.atMs > 0) {
+                    o.put("command_feedback", fb.status);
+                    if (fb.command != null && !fb.command.isEmpty()) {
+                        o.put("command_name", fb.command);
+                    }
+                    if (fb.detailKey != null && !fb.detailKey.isEmpty()) {
+                        o.put("command_detail_key", fb.detailKey);
+                    }
+                    if (fb.detailArg != null && !fb.detailArg.isEmpty()) {
+                        o.put("command_detail_arg", fb.detailArg);
+                    }
+                    o.put("command_at", isoUtc(fb.atMs));
+                }
             }
             putNum(o, "battery_voltage", snap.batteryVoltageV);
             putNum(o, "battery_current", snap.batteryCurrentA);
