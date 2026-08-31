@@ -47,6 +47,11 @@ public class HaBridgeService extends Service {
     private static final long VALIDATED_GRACE_MS = 45_000L;
     /** “yok sayıldı” logu yalnız servis açılışından sonraki bu süre. */
     private static final long IGNORE_LOG_WINDOW_MS = 120_000L;
+    /**
+     * WiFi onAvailable + validated peş peşe gelebilir; çift push’u önlemek için
+     * zorla tetiklemede kısa debounce.
+     */
+    private static final long WIFI_FORCE_DEBOUNCE_MS = 3_000L;
 
     private HandlerThread workerThread;
     private Handler worker;
@@ -490,12 +495,22 @@ public class HaBridgeService extends Service {
 
     private void scheduleTickSoon(String reason) {
         if (worker == null) return;
-        long interval = currentPushIntervalMs();
+        // WiFi (yeniden) bağlanınca aralığı beklemeden gönder — periyodik aralık
+        // yalnızca zaten bağlıyken sonraki tick için geçerli.
+        boolean forceOnWifi = "onAvailable".equals(reason) || "validated".equals(reason);
         long last = BridgeStatus.lastSendAtMs;
-        if (BridgeStatus.lastSendOk && last > 0) {
-            long since = System.currentTimeMillis() - last;
-            if (since < interval) {
-                // Ayrıntılı log + servis açılışından ilk 2 dk
+        long since = last > 0 ? System.currentTimeMillis() - last : Long.MAX_VALUE;
+        if (forceOnWifi) {
+            if (BridgeStatus.lastSendOk && since < WIFI_FORCE_DEBOUNCE_MS) {
+                if (MghaLog.isVerbose()) {
+                    MghaLog.i(TAG, "network " + reason + " yok sayıldı (debounce "
+                            + ((WIFI_FORCE_DEBOUNCE_MS - since) / 1000L) + "s)");
+                }
+                return;
+            }
+        } else {
+            long interval = currentPushIntervalMs();
+            if (BridgeStatus.lastSendOk && last > 0 && since < interval) {
                 if (MghaLog.isVerbose()
                         && SystemClock.elapsedRealtime() - serviceStartElapsedMs < IGNORE_LOG_WINDOW_MS) {
                     MghaLog.i(TAG, "network " + reason + " yok sayıldı (aralık "
@@ -504,7 +519,8 @@ public class HaBridgeService extends Service {
                 return;
             }
         }
-        MghaLog.i(TAG, "network " + reason + " → tick");
+        MghaLog.i(TAG, "network " + reason + " → tick"
+                + (forceOnWifi ? " (wifi force)" : ""));
         worker.removeCallbacks(tickRunnable);
         worker.post(tickRunnable);
     }
