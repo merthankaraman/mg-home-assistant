@@ -70,13 +70,15 @@ public class HaBridgeService extends Service {
     private Integer lastPublishedHvacTemp;
     private Integer lastPublishedHvacFan;
     private Integer lastPublishedMediaVolume;
-    private Boolean lastPublishedVehicleReady;
+    /** Son okunan READY (yükselen kenar; WiFi şart değil). */
+    private Boolean lastSeenVehicleReady;
 
     private final Runnable tickRunnable = this::tick;
     private final Runnable pollRunnable = this::pollTick;
-    private final Runnable pollCommandWatchRunnable = this::pollCommandWatchTick;
+    private final Runnable readyWatchRunnable = this::readyWatchTick;
 
-    private static final long POLL_COMMAND_WATCH_MS = 5_000L;
+    /** READY + arabada poll alanı değişimi (WiFi yokken de okunur; gönderim WiFi ile). */
+    private static final long READY_WATCH_MS = 1_000L;
 
     private void pollTick() {
         try {
@@ -105,23 +107,24 @@ public class HaBridgeService extends Service {
         worker.post(pollRunnable);
     }
 
-    private void startPollCommandWatch() {
+    private void startReadyWatch() {
         if (shuttingDown || worker == null) return;
-        worker.removeCallbacks(pollCommandWatchRunnable);
-        worker.postDelayed(pollCommandWatchRunnable, POLL_COMMAND_WATCH_MS);
+        worker.removeCallbacks(readyWatchRunnable);
+        worker.postDelayed(readyWatchRunnable, READY_WATCH_MS);
     }
 
     /**
-     * Poll komutları (klima, şarj sınırı, kabin °C) arabada değişince yalnızca o alanı değil,
-     * normal tick'teki tam mg4_bridge.push yükünü hemen gönder.
+     * READY ve poll komut alanlarını saniyede bir oku.
+     * READY false→true veya arabada değişim varsa WiFi uygunsa hemen tam push.
      */
-    private void pollCommandWatchTick() {
+    private void readyWatchTick() {
         try {
             if (!HaSettings.isConfigured(this)) return;
-            if (!WifiHelper.canSend(this, HaSettings.wifiOnly(this))) return;
             VehicleSnapshot snap = VehicleReader.read();
             lastTickPushMode = HaSettings.pushMode(snap.charging);
-            if (noteReadyRisingEdge(snap)) {
+            boolean readyRising = noteReadyRisingEdge(snap);
+            if (!WifiHelper.canSend(this, HaSettings.wifiOnly(this))) return;
+            if (readyRising) {
                 MghaLog.i(TAG, "araç READY oldu → tam push");
                 worker.removeCallbacks(tickRunnable);
                 worker.post(tickRunnable);
@@ -133,9 +136,9 @@ public class HaBridgeService extends Service {
                 worker.post(tickRunnable);
             }
         } catch (Throwable t) {
-            MghaLog.w(TAG, "pollCommandWatch: " + t.getMessage());
+            MghaLog.w(TAG, "readyWatch: " + t.getMessage());
         } finally {
-            startPollCommandWatch();
+            startReadyWatch();
         }
     }
 
@@ -174,16 +177,19 @@ public class HaBridgeService extends Service {
         return changed;
     }
 
-    /** READY false→true: son çalışma zamanını kaydet; true dönerse hemen push. */
+    /** READY false→true: son çalışma zamanını kaydet; true dönerse WiFi varsa hemen push. */
     private boolean noteReadyRisingEdge(VehicleSnapshot snap) {
         if (snap == null) return false;
-        if (snap.vehicleReady) {
+        Boolean prev = lastSeenVehicleReady;
+        boolean nowReady = snap.vehicleReady;
+        lastSeenVehicleReady = nowReady;
+        if (nowReady) {
             if (HaSettings.vehicleLastRunMs(this) <= 0) {
                 long now = System.currentTimeMillis();
                 HaSettings.setVehicleLastRunMs(this, now);
                 snap.vehicleLastRunMs = now;
             }
-            if (lastPublishedVehicleReady != null && !lastPublishedVehicleReady) {
+            if (Boolean.FALSE.equals(prev)) {
                 long now = System.currentTimeMillis();
                 HaSettings.setVehicleLastRunMs(this, now);
                 snap.vehicleLastRunMs = now;
@@ -212,7 +218,6 @@ public class HaBridgeService extends Service {
         if (snap.mediaVolumeLevel >= 0 && snap.mediaVolumeLevel <= 32) {
             lastPublishedMediaVolume = snap.mediaVolumeLevel;
         }
-        lastPublishedVehicleReady = snap.vehicleReady;
     }
 
     @Override
@@ -249,7 +254,7 @@ public class HaBridgeService extends Service {
         registerNetworkCallback();
         worker.post(tickRunnable);
         startPollLoop();
-        startPollCommandWatch();
+        startReadyWatch();
         broadcastStatus();
     }
 
