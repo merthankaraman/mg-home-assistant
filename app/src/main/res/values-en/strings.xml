@@ -93,6 +93,15 @@
     <string name="status_config_ok">ready</string>
     <string name="status_config_missing">URL/token missing</string>
     <string name="status_last_send">Last send: %1$s</string>
+    <string name="status_update_reason">Reason: %1$s</string>
+    <string name="update_reason_periodic">Scheduled interval</string>
+    <string name="update_reason_startup">Service started</string>
+    <string name="update_reason_wifi">Wi-Fi connected</string>
+    <string name="update_reason_vehicle_ready">Vehicle ready</string>
+    <string name="update_reason_car_changed">Changed on vehicle</string>
+    <string name="update_reason_ha_command">Home Assistant command</string>
+    <string name="update_reason_manual">Manual refresh</string>
+    <string name="update_reason_retry">Retry</string>
     <string name="status_counts">  (OK %1$d / fail %2$d)</string>
     <string name="status_line">Status: %1$s</string>
 

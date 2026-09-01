@@ -30,6 +30,12 @@ public final class HaPublisher {
 
     public static PublishResult publish(Context ctx, HomeAssistantClient client,
                                         String prefix, VehicleSnapshot snap) {
+        return publish(ctx, client, prefix, snap, null);
+    }
+
+    public static PublishResult publish(Context ctx, HomeAssistantClient client,
+                                        String prefix, VehicleSnapshot snap,
+                                        String updateReason) {
         PublishResult out = new PublishResult();
         if (client == null || snap == null) {
             out.lastError = ctx.getString(R.string.msg_client_missing);
@@ -38,7 +44,8 @@ public final class HaPublisher {
         }
         String p = sanitize(prefix);
 
-        HomeAssistantClient.Result push = client.callService("mg4_bridge", "push", buildPush(ctx, snap, p, true));
+        HomeAssistantClient.Result push = client.callService(
+                "mg4_bridge", "push", buildPush(ctx, snap, p, true, updateReason));
         if (push.ok) {
             out.ok = 1;
             out.viaBridge = true;
@@ -68,7 +75,7 @@ public final class HaPublisher {
         // Yalnızca servis yoksa REST; ağ/SSL hatasında fallback yağmuru yapma
         if (isMissingBridgeService(push)) {
             MghaLog.i("MGHA_HA", "mg4_bridge.push yok, REST fallback: " + formatErr(ctx, push));
-            return publishRest(ctx, client, p, snap, out);
+            return publishRest(ctx, client, p, snap, out, updateReason);
         }
         MghaLog.w("MGHA_HA", "push başarısız, REST atlandı (sonraki tick): " + formatErr(ctx, push));
         out.fail = 1;
@@ -137,13 +144,17 @@ public final class HaPublisher {
         }
     }
 
-    private static JSONObject buildPush(Context ctx, VehicleSnapshot snap, String prefix, boolean online) {
+    private static JSONObject buildPush(Context ctx, VehicleSnapshot snap, String prefix,
+                                        boolean online, String updateReason) {
         JSONObject o = new JSONObject();
         try {
             o.put("prefix", prefix);
             o.put("online", online);
             if (snap.demo) o.put("demo", true);
             o.put("last_update", isoUtc(snap.capturedAtMs));
+            if (updateReason != null && !updateReason.isEmpty()) {
+                o.put("update_reason", updateReason);
+            }
             putNum(o, "battery", snap.socPercent);
             putInt(o, "charge_limit", snap.chargeLimitPercent);
             if (snap.hvacOn != null) {
@@ -231,11 +242,15 @@ public final class HaPublisher {
     }
 
     private static PublishResult publishRest(Context ctx, HomeAssistantClient client,
-                                             String p, VehicleSnapshot snap, PublishResult out) {
+                                             String p, VehicleSnapshot snap, PublishResult out,
+                                             String updateReason) {
         JSONArray members = new JSONArray();
 
+        JSONObject lastUpdateAttrs = attrs(ctx.getString(R.string.ha_name_last_update), null,
+                "timestamp", null, "mdi:clock-outline");
+        putUpdateReason(lastUpdateAttrs, updateReason);
         postStr(client, out, members, "sensor." + p + "_last_update", isoUtc(snap.capturedAtMs),
-                attrs(ctx.getString(R.string.ha_name_last_update), null, "timestamp", null, "mdi:clock-outline"));
+                lastUpdateAttrs);
         if (!Double.isNaN(snap.latitude) && !Double.isNaN(snap.longitude)) {
             JSONObject a = new JSONObject();
             try {
@@ -450,6 +465,13 @@ public final class HaPublisher {
                 new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.US);
         sdf.setTimeZone(java.util.TimeZone.getDefault());
         return sdf.format(new java.util.Date(ms));
+    }
+
+    private static void putUpdateReason(JSONObject attrs, String updateReason) {
+        if (attrs == null || updateReason == null || updateReason.isEmpty()) return;
+        try {
+            attrs.put("update_reason", updateReason);
+        } catch (Exception ignored) {}
     }
 
     private static JSONObject attrs(String name, String unit, String deviceClass,

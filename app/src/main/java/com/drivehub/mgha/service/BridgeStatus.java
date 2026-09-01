@@ -8,6 +8,7 @@ public final class BridgeStatus {
     public static volatile String lastMessage = "";
     public static volatile String lastPreview = "";
     public static volatile long lastSendAtMs;
+    public static volatile String lastUpdateReason = "";
     public static volatile int lastOkCount;
     public static volatile int lastFailCount;
 

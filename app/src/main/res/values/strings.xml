@@ -93,6 +93,15 @@
     <string name="status_config_ok">tamam</string>
     <string name="status_config_missing">URL/token eksik</string>
     <string name="status_last_send">Son gönderim: %1$s</string>
+    <string name="status_update_reason">Sebep: %1$s</string>
+    <string name="update_reason_periodic">Zamanlanmış aralık</string>
+    <string name="update_reason_startup">Servis başladı</string>
+    <string name="update_reason_wifi">WiFi bağlandı</string>
+    <string name="update_reason_vehicle_ready">Araç çalışır durumda</string>
+    <string name="update_reason_car_changed">Araçta değişti</string>
+    <string name="update_reason_ha_command">Home Assistant komutu</string>
+    <string name="update_reason_manual">Elle güncelleme</string>
+    <string name="update_reason_retry">Yeniden deneme</string>
     <string name="status_counts">  (OK %1$d / fail %2$d)</string>
     <string name="status_line">Durum: %1$s</string>
 

@@ -34,6 +34,7 @@ import com.drivehub.mgha.hardware.VehicleSnapshot;
 import com.drivehub.mgha.net.WifiHelper;
 import com.drivehub.mgha.ota.OtaController;
 import com.drivehub.mgha.prefs.HaSettings;
+import com.drivehub.mgha.ha.UpdateReason;
 import com.drivehub.mgha.service.BridgeStatus;
 import com.drivehub.mgha.service.HaBridgeService;
 import com.drivehub.mgha.sync.ConfigWebServer;
@@ -380,6 +381,11 @@ public class MainActivity extends AppCompatActivity {
                 getString(HaSettings.isConfigured(this)
                         ? R.string.status_config_ok : R.string.status_config_missing))).append('\n');
         sb.append(getString(R.string.status_last_send, last));
+        if (BridgeStatus.lastSendOk && BridgeStatus.lastUpdateReason != null
+                && !BridgeStatus.lastUpdateReason.isEmpty()) {
+            sb.append('\n').append(getString(R.string.status_update_reason,
+                    UpdateReason.label(this, BridgeStatus.lastUpdateReason)));
+        }
         if (BridgeStatus.lastOkCount + BridgeStatus.lastFailCount > 0) {
             sb.append(getString(R.string.status_counts,
                     BridgeStatus.lastOkCount, BridgeStatus.lastFailCount));

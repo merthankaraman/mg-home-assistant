@@ -26,6 +26,7 @@ import com.drivehub.mgha.R;
 import com.drivehub.mgha.ha.HaCommandPoller;
 import com.drivehub.mgha.ha.HaPublisher;
 import com.drivehub.mgha.ha.HomeAssistantClient;
+import com.drivehub.mgha.ha.UpdateReason;
 import com.drivehub.mgha.hardware.VehicleReader;
 import com.drivehub.mgha.hardware.VehicleSnapshot;
 import com.drivehub.mgha.net.WifiHelper;
@@ -72,6 +73,7 @@ public class HaBridgeService extends Service {
     private Integer lastPublishedMediaVolume;
     /** Son okunan READY (yükselen kenar; WiFi şart değil). */
     private Boolean lastSeenVehicleReady;
+    private String pendingTickReason = UpdateReason.STARTUP;
 
     private final Runnable tickRunnable = this::tick;
     private final Runnable pollRunnable = this::pollTick;
@@ -84,8 +86,7 @@ public class HaBridgeService extends Service {
         try {
             if (HaCommandPoller.poll(this)) {
                 MghaLog.i(TAG, "HA güncelle → tam push");
-                worker.removeCallbacks(tickRunnable);
-                worker.post(tickRunnable);
+                requestTickNow(UpdateReason.HA_COMMAND);
             }
         } catch (Throwable t) {
             MghaLog.w(TAG, "poll: " + t.getMessage());
@@ -126,14 +127,12 @@ public class HaBridgeService extends Service {
             if (!WifiHelper.canSend(this, HaSettings.wifiOnly(this))) return;
             if (readyRising) {
                 MghaLog.i(TAG, "araç READY oldu → tam push");
-                worker.removeCallbacks(tickRunnable);
-                worker.post(tickRunnable);
+                requestTickNow(UpdateReason.VEHICLE_READY);
                 return;
             }
             if (pollCommandChangedOnCar(snap)) {
                 MghaLog.i(TAG, "poll komutu arabada değişti → tam push");
-                worker.removeCallbacks(tickRunnable);
-                worker.post(tickRunnable);
+                requestTickNow(UpdateReason.CAR_CHANGED);
             }
         } catch (Throwable t) {
             MghaLog.w(TAG, "readyWatch: " + t.getMessage());
@@ -252,7 +251,7 @@ public class HaBridgeService extends Service {
         BridgeStatus.running = true;
         BridgeStatus.lastMessage = getString(R.string.msg_service_started);
         registerNetworkCallback();
-        worker.post(tickRunnable);
+        requestTickNow(UpdateReason.STARTUP);
         startPollLoop();
         startReadyWatch();
         broadcastStatus();
@@ -263,8 +262,7 @@ public class HaBridgeService extends Service {
         startFg(buildNotification(BridgeStatus.lastMessage));
         VehicleReader.startGpsUpdates(this);
         if (intent != null && ACTION_TICK_NOW.equals(intent.getAction()) && worker != null) {
-            worker.removeCallbacks(tickRunnable);
-            worker.post(tickRunnable);
+            requestTickNow(UpdateReason.MANUAL);
         }
         startPollLoop();
         return START_STICKY;
@@ -303,7 +301,8 @@ public class HaBridgeService extends Service {
     }
 
     private void tick() {
-        MghaLog.i(TAG, "tick başlıyor");
+        String updateReason = pendingTickReason != null ? pendingTickReason : UpdateReason.PERIODIC;
+        MghaLog.i(TAG, "tick başlıyor reason=" + updateReason);
         nextDelayMs = -1L;
         renewWakeLock();
         try {
@@ -392,12 +391,14 @@ public class HaBridgeService extends Service {
                     HaSettings.url(this),
                     HaSettings.token(this),
                     HaSettings.allowInsecureSsl(this));
-            HaPublisher.PublishResult r = HaPublisher.publish(this, client, HaSettings.prefix(this), snap);
+            HaPublisher.PublishResult r = HaPublisher.publish(
+                    this, client, HaSettings.prefix(this), snap, updateReason);
             BridgeStatus.lastOkCount = r.ok;
             BridgeStatus.lastFailCount = r.fail;
             BridgeStatus.lastSendAtMs = System.currentTimeMillis();
             BridgeStatus.lastSendOk = r.fail == 0 && r.ok > 0;
             if (BridgeStatus.lastSendOk) {
+                BridgeStatus.lastUpdateReason = updateReason;
                 rememberPublishedPollCommands(snap);
                 String dest = r.viaBridge
                         ? ("mg4_bridge/" + HaSettings.prefix(this))
@@ -425,10 +426,24 @@ public class HaBridgeService extends Service {
                 long delay = nextDelayMs > 0
                         ? nextDelayMs
                         : HaSettings.intervalMsForMode(this, lastTickPushMode);
-                worker.removeCallbacks(tickRunnable);
-                worker.postDelayed(tickRunnable, delay);
+                scheduleNextTick(delay,
+                        nextDelayMs > 0 ? UpdateReason.RETRY : UpdateReason.PERIODIC);
             }
         }
+    }
+
+    private void requestTickNow(String reason) {
+        if (worker == null) return;
+        pendingTickReason = reason;
+        worker.removeCallbacks(tickRunnable);
+        worker.post(tickRunnable);
+    }
+
+    private void scheduleNextTick(long delayMs, String reason) {
+        if (shuttingDown || worker == null) return;
+        pendingTickReason = reason;
+        worker.removeCallbacks(tickRunnable);
+        worker.postDelayed(tickRunnable, delayMs);
     }
 
     private long currentPushIntervalMs() {
@@ -526,8 +541,7 @@ public class HaBridgeService extends Service {
         }
         MghaLog.i(TAG, "network " + reason + " → tick"
                 + (forceOnWifi ? " (wifi force)" : ""));
-        worker.removeCallbacks(tickRunnable);
-        worker.post(tickRunnable);
+        requestTickNow(forceOnWifi ? UpdateReason.WIFI : UpdateReason.RETRY);
     }
 
     private void unregisterNetworkCallback() {
