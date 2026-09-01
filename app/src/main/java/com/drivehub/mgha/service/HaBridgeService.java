@@ -46,13 +46,6 @@ public class HaBridgeService extends Service {
     private static final long RETRY_SOON_MS = 1_000L;
     /** VALIDATED gelmezse bu süre sonra yine dene (OEM). */
     private static final long VALIDATED_GRACE_MS = 45_000L;
-    /** “yok sayıldı” logu yalnız servis açılışından sonraki bu süre. */
-    private static final long IGNORE_LOG_WINDOW_MS = 120_000L;
-    /**
-     * WiFi onAvailable + validated peş peşe gelebilir; çift push’u önlemek için
-     * zorla tetiklemede kısa debounce.
-     */
-    private static final long WIFI_FORCE_DEBOUNCE_MS = 3_000L;
 
     private HandlerThread workerThread;
     private Handler worker;
@@ -382,6 +375,13 @@ public class HaBridgeService extends Service {
                 return;
             }
 
+            long waitMs = remainingPushIntervalMs(updateReason);
+            if (waitMs > 0) {
+                MghaLog.i(TAG, "aralık bekleniyor " + (waitMs / 1000L) + "s (reason=" + updateReason + ")");
+                nextDelayMs = waitMs;
+                return;
+            }
+
             BridgeStatus.lastMessage = getString(R.string.msg_sending);
             notifyText(BridgeStatus.lastMessage);
             broadcastStatus();
@@ -450,6 +450,24 @@ public class HaBridgeService extends Service {
         return HaSettings.intervalMsForMode(this, lastTickPushMode);
     }
 
+    /**
+     * Son başarılı gönderimden bu yana aralık dolmadıysa kalan ms; aksi halde 0.
+     * WiFi / periyodik / retry aynı aralığı paylaşır.
+     */
+    private long remainingPushIntervalMs(String reason) {
+        if (!BridgeStatus.lastSendOk || BridgeStatus.lastSendAtMs <= 0) {
+            return 0;
+        }
+        if (!UpdateReason.PERIODIC.equals(reason)
+                && !UpdateReason.RETRY.equals(reason)
+                && !UpdateReason.WIFI.equals(reason)) {
+            return 0;
+        }
+        long since = System.currentTimeMillis() - BridgeStatus.lastSendAtMs;
+        long interval = currentPushIntervalMs();
+        return since >= interval ? 0 : interval - since;
+    }
+
     /** SOC / menzil / km’den biri doluysa göndermeye değer (GPS şart değil). */
     private static boolean hasUsefulVehicleData(VehicleSnapshot snap) {
         if (snap == null) return false;
@@ -489,12 +507,11 @@ public class HaBridgeService extends Service {
                             HaSettings.wifiOnBoot(HaBridgeService.this)
                                     || HaSettings.wifiOnly(HaBridgeService.this), true);
                 }
-                scheduleTickSoon("onLost");
             }
 
             @Override
             public void onAvailable(@NonNull Network network) {
-                scheduleTickSoon("onAvailable");
+                onWifiConnected("onAvailable");
             }
 
             @Override
@@ -502,7 +519,7 @@ public class HaBridgeService extends Service {
                                               @NonNull NetworkCapabilities caps) {
                 if (Build.VERSION.SDK_INT >= 23
                         && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
-                    scheduleTickSoon("validated");
+                    onWifiConnected("validated");
                 }
             }
         };
@@ -513,35 +530,20 @@ public class HaBridgeService extends Service {
         }
     }
 
-    private void scheduleTickSoon(String reason) {
+    /** WiFi bağlanınca: aralık dolduysa hemen gönder, dolmadıysa kalan süreyi bekle. */
+    private void onWifiConnected(String reason) {
         if (worker == null) return;
-        // WiFi (yeniden) bağlanınca aralığı beklemeden gönder — periyodik aralık
-        // yalnızca zaten bağlıyken sonraki tick için geçerli.
-        boolean forceOnWifi = "onAvailable".equals(reason) || "validated".equals(reason);
-        long last = BridgeStatus.lastSendAtMs;
-        long since = last > 0 ? System.currentTimeMillis() - last : Long.MAX_VALUE;
-        if (forceOnWifi) {
-            if (BridgeStatus.lastSendOk && since < WIFI_FORCE_DEBOUNCE_MS) {
-                if (MghaLog.isVerbose()) {
-                    MghaLog.i(TAG, "network " + reason + " yok sayıldı (debounce "
-                            + ((WIFI_FORCE_DEBOUNCE_MS - since) / 1000L) + "s)");
-                }
-                return;
+        long waitMs = remainingPushIntervalMs(UpdateReason.WIFI);
+        if (waitMs > 0) {
+            if (MghaLog.isVerbose()) {
+                MghaLog.i(TAG, "wifi " + reason + " yok sayıldı (aralık "
+                        + (waitMs / 1000L) + "s kaldı)");
             }
-        } else {
-            long interval = currentPushIntervalMs();
-            if (BridgeStatus.lastSendOk && last > 0 && since < interval) {
-                if (MghaLog.isVerbose()
-                        && SystemClock.elapsedRealtime() - serviceStartElapsedMs < IGNORE_LOG_WINDOW_MS) {
-                    MghaLog.i(TAG, "network " + reason + " yok sayıldı (aralık "
-                            + ((interval - since) / 1000L) + "s kaldı)");
-                }
-                return;
-            }
+            scheduleNextTick(waitMs, UpdateReason.PERIODIC);
+            return;
         }
-        MghaLog.i(TAG, "network " + reason + " → tick"
-                + (forceOnWifi ? " (wifi force)" : ""));
-        requestTickNow(forceOnWifi ? UpdateReason.WIFI : UpdateReason.RETRY);
+        MghaLog.i(TAG, "wifi " + reason + " → tick");
+        requestTickNow(UpdateReason.WIFI);
     }
 
     private void unregisterNetworkCallback() {
