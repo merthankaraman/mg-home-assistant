@@ -49,12 +49,9 @@ public final class HaPublisher {
         if (push.ok) {
             out.ok = 1;
             out.viaBridge = true;
+            HaCommandPoller.scheduleCommandsBaseline(snap.charging, snap.hvacOn);
             if (snap.chargeLimitPercent >= 40 && snap.chargeLimitPercent <= 100) {
                 HaCommandPoller.noteChargeLimitFromCar(snap.chargeLimitPercent);
-            }
-            HaCommandPoller.noteChargingFromCar(snap.charging);
-            if (snap.hvacOn != null) {
-                HaCommandPoller.noteHvacFromCar(snap.hvacOn);
             }
             if (snap.hvacTempC >= 16 && snap.hvacTempC <= 30) {
                 HaCommandPoller.noteHvacTempFromCar(snap.hvacTempC);
@@ -337,7 +334,7 @@ public final class HaPublisher {
             HaCommandPoller.noteMediaVolumeFromCar(snap.mediaVolumeLevel);
         }
         if (out.ok > 0) {
-            HaCommandPoller.noteChargingFromCar(snap.charging);
+            HaCommandPoller.scheduleCommandsBaseline(snap.charging, snap.hvacOn);
             HaCommandPoller.noteIntervalsFromCar(
                     HaSettings.intervalNormalMin(ctx),
                     HaSettings.intervalChargingSec(ctx));

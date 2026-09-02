@@ -14,6 +14,15 @@ import com.drivehub.mgha.util.MghaLog;
 public final class HaCommandPoller {
     private static final String TAG = "MGHA_POLL";
     private static final long VERIFY_DELAY_MS = 900L;
+    /** Push sonrası HA'nın switch/number senkronu için bekleme. */
+    private static final long COMMANDS_POLL_DELAY_MS = 3_000L;
+
+    /** Komut poll'u açık mı (push + gecikme sonrası). */
+    private static boolean sCommandsBaselined;
+    private static boolean sBaselinePending;
+    private static long sBaselinePendingAtMs;
+    private static boolean sPendingCharging;
+    private static Boolean sPendingHvac;
 
     private static Boolean sLastHvacOn;
     private static Boolean sLastCharging;
@@ -89,7 +98,7 @@ public final class HaCommandPoller {
         boolean forcePush = pollRefresh(ctx, client, prefix);
         pollIntervals(ctx, client, prefix);
 
-        if (HaSettings.pollEnabled(ctx)) {
+        if (HaSettings.pollEnabled(ctx) && ensureCommandsBaselined()) {
             pollHvac(ctx, client, prefix);
             pollHvacTemp(ctx, client, prefix);
             pollHvacFan(ctx, client, prefix);
@@ -160,6 +169,11 @@ public final class HaCommandPoller {
         String entity = "switch." + prefix + "_hvac";
         Boolean hvacOn = client.getSwitchState(entity);
         if (hvacOn == null) return;
+        Boolean carNow = VehicleReader.readHvacPowerOn();
+        if (carNow != null && hvacOn.equals(carNow)) {
+            sLastHvacOn = hvacOn;
+            return;
+        }
         if (sLastHvacOn != null && sLastHvacOn.equals(hvacOn)) return;
         String wantKey = hvacOn ? "on" : "off";
         if (!VehicleReader.setHvacPower(hvacOn)) {
@@ -186,6 +200,11 @@ public final class HaCommandPoller {
         String entity = "switch." + prefix + "_charging";
         Boolean want = client.getSwitchState(entity);
         if (want == null) return;
+        boolean carNow = VehicleReader.readIsCharging();
+        if (want.equals(carNow)) {
+            sLastCharging = want;
+            return;
+        }
         if (sLastCharging != null && sLastCharging.equals(want)) return;
         String wantKey = want ? "start" : "stop";
         if (!VehicleReader.setChargingControl(want)) {
@@ -325,8 +344,43 @@ public final class HaCommandPoller {
         sLastHvacOn = on;
     }
 
-    public static void noteChargingFromCar(boolean charging) {
-        sLastCharging = charging;
+    /** Başarılı push sonrası: HA senkronu için {@link #COMMANDS_POLL_DELAY_MS} beklenir. */
+    public static void scheduleCommandsBaseline(boolean charging, Boolean hvacOn) {
+        if (sCommandsBaselined) return;
+        sBaselinePending = true;
+        sBaselinePendingAtMs = System.currentTimeMillis();
+        sPendingCharging = charging;
+        sPendingHvac = hvacOn;
+        MghaLog.i(TAG, "komut poll " + (COMMANDS_POLL_DELAY_MS / 1000L) + "s bekleniyor (HA senkron)");
+    }
+
+    private static boolean ensureCommandsBaselined() {
+        if (sCommandsBaselined) return true;
+        if (!sBaselinePending) return false;
+        long elapsed = System.currentTimeMillis() - sBaselinePendingAtMs;
+        if (elapsed < COMMANDS_POLL_DELAY_MS) return false;
+        sCommandsBaselined = true;
+        sBaselinePending = false;
+        sLastCharging = sPendingCharging;
+        if (sPendingHvac != null) {
+            sLastHvacOn = sPendingHvac;
+        }
+        MghaLog.i(TAG, "komut poll açıldı (" + elapsed + "ms)");
+        return true;
+    }
+
+    /** Araç uyandığında / servis başında: önce push, sonra komut. */
+    public static void resetCommandsBaseline() {
+        sCommandsBaselined = false;
+        sBaselinePending = false;
+        sBaselinePendingAtMs = 0L;
+        sPendingHvac = null;
+        sLastHvacOn = null;
+        sLastCharging = null;
+        sLastChargeLimitPct = null;
+        sLastHvacTempC = null;
+        sLastHvacFanLevel = null;
+        sLastMediaVolume = null;
     }
 
     public static void noteChargeLimitFromCar(int pct) {
@@ -361,12 +415,7 @@ public final class HaCommandPoller {
     }
 
     public static void resetCache() {
-        sLastHvacOn = null;
-        sLastCharging = null;
-        sLastChargeLimitPct = null;
-        sLastHvacTempC = null;
-        sLastHvacFanLevel = null;
-        sLastMediaVolume = null;
+        resetCommandsBaseline();
         sLastIntervalNormal = null;
         sLastIntervalCharging = null;
     }

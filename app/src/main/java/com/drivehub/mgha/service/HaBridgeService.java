@@ -185,6 +185,7 @@ public class HaBridgeService extends Service {
                 long now = System.currentTimeMillis();
                 HaSettings.setVehicleLastRunMs(this, now);
                 snap.vehicleLastRunMs = now;
+                HaCommandPoller.resetCommandsBaseline();
                 return true;
             }
         }
@@ -243,6 +244,7 @@ public class HaBridgeService extends Service {
         }
         BridgeStatus.running = true;
         BridgeStatus.lastMessage = getString(R.string.msg_service_started);
+        HaCommandPoller.resetCommandsBaseline();
         registerNetworkCallback();
         requestTickNow(UpdateReason.STARTUP);
         startPollLoop();
