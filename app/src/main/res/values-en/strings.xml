@@ -98,6 +98,8 @@
     <string name="update_reason_startup">Service started</string>
     <string name="update_reason_wifi">Wi-Fi connected</string>
     <string name="update_reason_vehicle_ready">Vehicle ready</string>
+    <string name="update_reason_charging_started">Charging started</string>
+    <string name="update_reason_charging_stopped">Charging stopped</string>
     <string name="update_reason_car_changed">Changed on vehicle</string>
     <string name="update_reason_ha_command">Home Assistant command</string>
     <string name="update_reason_manual">Manual refresh</string>

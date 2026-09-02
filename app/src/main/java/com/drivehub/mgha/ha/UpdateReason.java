@@ -10,6 +10,8 @@ public final class UpdateReason {
     public static final String STARTUP = "startup";
     public static final String WIFI = "wifi";
     public static final String VEHICLE_READY = "vehicle_ready";
+    public static final String CHARGING_STARTED = "charging_started";
+    public static final String CHARGING_STOPPED = "charging_stopped";
     public static final String CAR_CHANGED = "car_changed";
     public static final String HA_COMMAND = "ha_command";
     public static final String MANUAL = "manual";
@@ -28,6 +30,10 @@ public final class UpdateReason {
                 return ctx.getString(R.string.update_reason_wifi);
             case VEHICLE_READY:
                 return ctx.getString(R.string.update_reason_vehicle_ready);
+            case CHARGING_STARTED:
+                return ctx.getString(R.string.update_reason_charging_started);
+            case CHARGING_STOPPED:
+                return ctx.getString(R.string.update_reason_charging_stopped);
             case CAR_CHANGED:
                 return ctx.getString(R.string.update_reason_car_changed);
             case HA_COMMAND:

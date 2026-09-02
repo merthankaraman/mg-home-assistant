@@ -98,6 +98,8 @@
     <string name="update_reason_startup">Servis başladı</string>
     <string name="update_reason_wifi">WiFi bağlandı</string>
     <string name="update_reason_vehicle_ready">Araç çalışır durumda</string>
+    <string name="update_reason_charging_started">Şarj başladı</string>
+    <string name="update_reason_charging_stopped">Şarj bitti</string>
     <string name="update_reason_car_changed">Araçta değişti</string>
     <string name="update_reason_ha_command">Home Assistant komutu</string>
     <string name="update_reason_manual">Elle güncelleme</string>

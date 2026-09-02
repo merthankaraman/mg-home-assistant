@@ -59,6 +59,7 @@ public class HaBridgeService extends Service {
     /** Son tick anlığındaki push modu (aralık seçimi). */
     private HaSettings.PushMode lastTickPushMode = HaSettings.PushMode.NORMAL;
     /** Son push'taki poll komut alanları (arabada değişince tam push tetiklenir). */
+    private Boolean lastPublishedCharging;
     private Integer lastPublishedChargeLimit;
     private Boolean lastPublishedHvac;
     private Integer lastPublishedHvacTemp;
@@ -66,6 +67,8 @@ public class HaBridgeService extends Service {
     private Integer lastPublishedMediaVolume;
     /** Son okunan READY (yükselen kenar; WiFi şart değil). */
     private Boolean lastSeenVehicleReady;
+    /** Son okunan şarj durumu (kenar algılama; WiFi şart değil). */
+    private Boolean lastSeenCharging;
     private String pendingTickReason = UpdateReason.STARTUP;
 
     private final Runnable tickRunnable = this::tick;
@@ -109,7 +112,7 @@ public class HaBridgeService extends Service {
 
     /**
      * READY ve poll komut alanlarını saniyede bir oku.
-     * READY false→true veya arabada değişim varsa WiFi uygunsa hemen tam push.
+     * READY / şarj başlangıç-bitiş veya arabada değişim varsa WiFi uygunsa hemen tam push.
      */
     private void readyWatchTick() {
         try {
@@ -117,10 +120,21 @@ public class HaBridgeService extends Service {
             VehicleSnapshot snap = VehicleReader.read();
             lastTickPushMode = HaSettings.pushMode(snap.charging);
             boolean readyRising = noteReadyRisingEdge(snap);
+            String chargingEdge = noteChargingEdgeChange(snap);
             if (!WifiHelper.canSend(this, HaSettings.wifiOnly(this))) return;
             if (readyRising) {
                 MghaLog.i(TAG, "araç READY oldu → tam push");
                 requestTickNow(UpdateReason.VEHICLE_READY);
+                return;
+            }
+            if (UpdateReason.CHARGING_STARTED.equals(chargingEdge)) {
+                MghaLog.i(TAG, "şarj başladı → tam push");
+                requestTickNow(UpdateReason.CHARGING_STARTED);
+                return;
+            }
+            if (UpdateReason.CHARGING_STOPPED.equals(chargingEdge)) {
+                MghaLog.i(TAG, "şarj bitti → tam push (normal aralık)");
+                requestTickNow(UpdateReason.CHARGING_STOPPED);
                 return;
             }
             if (pollCommandChangedOnCar(snap)) {
@@ -192,8 +206,26 @@ public class HaBridgeService extends Service {
         return false;
     }
 
+    /** Şarj false↔true kenarı: hemen push; bitişte normal aralığa dön. */
+    @Nullable
+    private String noteChargingEdgeChange(VehicleSnapshot snap) {
+        if (snap == null) return null;
+        Boolean prev = lastSeenCharging;
+        boolean now = snap.charging;
+        lastSeenCharging = now;
+        if (Boolean.FALSE.equals(prev) && now) {
+            return UpdateReason.CHARGING_STARTED;
+        }
+        if (Boolean.TRUE.equals(prev) && !now) {
+            lastTickPushMode = HaSettings.PushMode.NORMAL;
+            return UpdateReason.CHARGING_STOPPED;
+        }
+        return null;
+    }
+
     private void rememberPublishedPollCommands(VehicleSnapshot snap) {
         if (snap == null) return;
+        lastPublishedCharging = snap.charging;
         if (snap.chargeLimitPercent >= 40 && snap.chargeLimitPercent <= 100) {
             lastPublishedChargeLimit = snap.chargeLimitPercent;
         }

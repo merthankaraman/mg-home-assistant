@@ -50,3 +50,4 @@ tools/releases/*
 
 # HA / HACS bileşeni ayrı git (ha/)
 /ha/
+/tools/publish_github_prerelease.bat
