@@ -132,11 +132,12 @@ public final class HaCommandPoller {
     private static void pollIntervalNormal(Context ctx, HomeAssistantClient client, String entity) {
         Integer min = client.getNumberState(entity);
         if (min == null) return;
+        if (sLastIntervalNormal != null && sLastIntervalNormal.equals(min)) return;
         if (min < HaSettings.MIN_PUSH_INTERVAL_MIN) {
+            sLastIntervalNormal = min;
             noteFeedback("fail", "interval_normal", "invalid", String.valueOf(min));
             return;
         }
-        if (sLastIntervalNormal != null && sLastIntervalNormal.equals(min)) return;
         int current = HaSettings.intervalNormalMin(ctx);
         if (min == current) {
             sLastIntervalNormal = min;
@@ -150,11 +151,12 @@ public final class HaCommandPoller {
     private static void pollIntervalCharging(Context ctx, HomeAssistantClient client, String entity) {
         Integer sec = client.getNumberState(entity);
         if (sec == null) return;
+        if (sLastIntervalCharging != null && sLastIntervalCharging.equals(sec)) return;
         if (sec < HaSettings.MIN_PUSH_INTERVAL_CHARGING_SEC) {
+            sLastIntervalCharging = sec;
             noteFeedback("fail", "interval_charging", "invalid", String.valueOf(sec));
             return;
         }
-        if (sLastIntervalCharging != null && sLastIntervalCharging.equals(sec)) return;
         int current = HaSettings.intervalChargingSec(ctx);
         if (sec == current) {
             sLastIntervalCharging = sec;
@@ -174,8 +176,10 @@ public final class HaCommandPoller {
             sLastHvacOn = hvacOn;
             return;
         }
+        // Aynı HA hedefini tekrar deneme (fail olsa bile spam push olmasın)
         if (sLastHvacOn != null && sLastHvacOn.equals(hvacOn)) return;
         String wantKey = hvacOn ? "on" : "off";
+        sLastHvacOn = hvacOn;
         if (!VehicleReader.setHvacPower(hvacOn)) {
             noteFeedback("fail", "hvac", "write_failed", wantKey);
             return;
@@ -187,12 +191,10 @@ public final class HaCommandPoller {
             return;
         }
         if (now != hvacOn) {
-            sLastHvacOn = now;
             noteFeedback("fail", "hvac", "verify_mismatch",
                     (now ? "on" : "off") + "/" + wantKey);
             return;
         }
-        sLastHvacOn = hvacOn;
         noteFeedback("ok", "hvac", wantKey);
     }
 
@@ -207,6 +209,7 @@ public final class HaCommandPoller {
         }
         if (sLastCharging != null && sLastCharging.equals(want)) return;
         String wantKey = want ? "start" : "stop";
+        sLastCharging = want;
         if (!VehicleReader.setChargingControl(want)) {
             noteFeedback("fail", "charging", "write_failed", wantKey);
             return;
@@ -214,12 +217,10 @@ public final class HaCommandPoller {
         sleepVerify();
         boolean now = VehicleReader.readIsCharging();
         if (now != want) {
-            sLastCharging = now;
             noteFeedback("fail", "charging", "verify_mismatch",
                     (now ? "on" : "off") + "/" + wantKey);
             return;
         }
-        sLastCharging = want;
         noteFeedback("ok", "charging", wantKey);
     }
 
@@ -227,11 +228,13 @@ public final class HaCommandPoller {
         String entity = "number." + prefix + "_hvac_temperature";
         Integer tempC = client.getNumberState(entity);
         if (tempC == null) return;
+        if (sLastHvacTempC != null && sLastHvacTempC.equals(tempC)) return;
         if (tempC < 16 || tempC > 30) {
+            sLastHvacTempC = tempC;
             noteFeedback("fail", "hvac_temp", "invalid", tempC + "C");
             return;
         }
-        if (sLastHvacTempC != null && sLastHvacTempC.equals(tempC)) return;
+        sLastHvacTempC = tempC;
         if (!VehicleReader.setHvacTemperature(tempC)) {
             noteFeedback("fail", "hvac_temp", "write_failed", tempC + "C");
             return;
@@ -243,11 +246,9 @@ public final class HaCommandPoller {
             return;
         }
         if (now != tempC) {
-            sLastHvacTempC = now;
             noteFeedback("fail", "hvac_temp", "verify_mismatch", now + "C/" + tempC + "C");
             return;
         }
-        sLastHvacTempC = tempC;
         noteFeedback("ok", "hvac_temp", "set", tempC + "C");
     }
 
@@ -255,12 +256,14 @@ public final class HaCommandPoller {
         String entity = "number." + prefix + "_hvac_fan";
         Integer level = client.getNumberState(entity);
         if (level == null) return;
+        if (sLastHvacFanLevel != null && sLastHvacFanLevel.equals(level)) return;
         if (level < VehicleReader.HVAC_FAN_MIN || level > VehicleReader.HVAC_FAN_AUTO
                 || (level > 11 && level < VehicleReader.HVAC_FAN_AUTO)) {
+            sLastHvacFanLevel = level;
             noteFeedback("fail", "hvac_fan", "invalid", String.valueOf(level));
             return;
         }
-        if (sLastHvacFanLevel != null && sLastHvacFanLevel.equals(level)) return;
+        sLastHvacFanLevel = level;
         if (!VehicleReader.setHvacFanSpeed(level)) {
             noteFeedback("fail", "hvac_fan", "write_failed", String.valueOf(level));
             return;
@@ -272,11 +275,9 @@ public final class HaCommandPoller {
             return;
         }
         if (now != level) {
-            sLastHvacFanLevel = now;
             noteFeedback("fail", "hvac_fan", "verify_mismatch", now + "/" + level);
             return;
         }
-        sLastHvacFanLevel = level;
         if (level == VehicleReader.HVAC_FAN_AUTO) {
             noteFeedback("ok", "hvac_fan", "auto");
         } else {
@@ -288,11 +289,13 @@ public final class HaCommandPoller {
         String entity = "number." + prefix + "_media_volume";
         Integer level = client.getNumberState(entity);
         if (level == null) return;
+        if (sLastMediaVolume != null && sLastMediaVolume.equals(level)) return;
         if (level < 0 || level > 32) {
+            sLastMediaVolume = level;
             noteFeedback("fail", "media_volume", "invalid", String.valueOf(level));
             return;
         }
-        if (sLastMediaVolume != null && sLastMediaVolume.equals(level)) return;
+        sLastMediaVolume = level;
         if (!VehicleReader.setMediaVolumeLevel(level)) {
             noteFeedback("fail", "media_volume", "write_failed", String.valueOf(level));
             return;
@@ -304,11 +307,9 @@ public final class HaCommandPoller {
             return;
         }
         if (now != level) {
-            sLastMediaVolume = now;
             noteFeedback("fail", "media_volume", "verify_mismatch", now + "/" + level);
             return;
         }
-        sLastMediaVolume = level;
         noteFeedback("ok", "media_volume", "set", String.valueOf(level));
     }
 
@@ -316,11 +317,13 @@ public final class HaCommandPoller {
         String entity = "number." + prefix + "_charge_limit";
         Integer pct = client.getNumberState(entity);
         if (pct == null) return;
+        if (sLastChargeLimitPct != null && sLastChargeLimitPct.equals(pct)) return;
         if (VehicleReader.chargeLimitPercentToStep(pct) < 0) {
+            sLastChargeLimitPct = pct;
             noteFeedback("fail", "charge_limit", "invalid", pct + "%");
             return;
         }
-        if (sLastChargeLimitPct != null && sLastChargeLimitPct.equals(pct)) return;
+        sLastChargeLimitPct = pct;
         if (!VehicleReader.setChargeLimitPercent(pct)) {
             noteFeedback("fail", "charge_limit", "write_failed", pct + "%");
             return;
@@ -332,26 +335,29 @@ public final class HaCommandPoller {
             return;
         }
         if (now != pct) {
-            sLastChargeLimitPct = now;
             noteFeedback("fail", "charge_limit", "verify_mismatch", now + "%/" + pct + "%");
             return;
         }
-        sLastChargeLimitPct = pct;
         noteFeedback("ok", "charge_limit", "set", pct + "%");
     }
 
     public static void noteHvacFromCar(boolean on) {
+        // Baseline sonrası poll "son işlenen HA hedefi" tutar; push ile ezme.
+        if (sCommandsBaselined) return;
         sLastHvacOn = on;
     }
 
     /** Başarılı push sonrası: HA senkronu için {@link #COMMANDS_POLL_DELAY_MS} beklenir. */
     public static void scheduleCommandsBaseline(boolean charging, Boolean hvacOn) {
         if (sCommandsBaselined) return;
-        sBaselinePending = true;
-        sBaselinePendingAtMs = System.currentTimeMillis();
+        if (!sBaselinePending) {
+            sBaselinePending = true;
+            sBaselinePendingAtMs = System.currentTimeMillis();
+            MghaLog.i(TAG, "komut poll " + (COMMANDS_POLL_DELAY_MS / 1000L)
+                    + "s bekleniyor (HA senkron)");
+        }
         sPendingCharging = charging;
         sPendingHvac = hvacOn;
-        MghaLog.i(TAG, "komut poll " + (COMMANDS_POLL_DELAY_MS / 1000L) + "s bekleniyor (HA senkron)");
     }
 
     private static boolean ensureCommandsBaselined() {
@@ -384,18 +390,21 @@ public final class HaCommandPoller {
     }
 
     public static void noteChargeLimitFromCar(int pct) {
+        if (sCommandsBaselined) return;
         if (pct >= 40 && pct <= 100 && pct % 10 == 0) {
             sLastChargeLimitPct = pct;
         }
     }
 
     public static void noteHvacTempFromCar(int tempC) {
+        if (sCommandsBaselined) return;
         if (tempC >= 16 && tempC <= 30) {
             sLastHvacTempC = tempC;
         }
     }
 
     public static void noteHvacFanFromCar(int level) {
+        if (sCommandsBaselined) return;
         if (level >= VehicleReader.HVAC_FAN_MIN && level <= VehicleReader.HVAC_FAN_MAX_MANUAL) {
             sLastHvacFanLevel = level;
         } else if (level == VehicleReader.HVAC_FAN_AUTO) {
@@ -404,12 +413,14 @@ public final class HaCommandPoller {
     }
 
     public static void noteMediaVolumeFromCar(int level) {
+        if (sCommandsBaselined) return;
         if (level >= 0 && level <= 32) {
             sLastMediaVolume = level;
         }
     }
 
     public static void noteIntervalsFromCar(int normalMin, int chargingSec) {
+        if (sCommandsBaselined) return;
         sLastIntervalNormal = normalMin;
         sLastIntervalCharging = chargingSec;
     }
